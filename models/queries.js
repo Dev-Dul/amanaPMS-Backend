@@ -2,343 +2,175 @@ const { PrismaClient } = require("../generated/prisma/client");
 const prisma = new PrismaClient();
 
 
-async function createNewUserLocal(username, email, password){
-    await prisma.user.create({
+async function createNewUser(fullname, email, password, role, addNum = null, staffId = null){
+    const user = await prisma.user.create({
         data: {
-            username: username,
+            fullname: fullname,
             email: email,
             password: password
         }
     });
-}
 
-async function findOrCreateByGoogle(profile) {
-  const findUser = await prisma.user.findUnique({
-    where: { googleId: profile.id },
-  });
-
-  if(!findUser) {
-    const user = await prisma.user.create({
-      data: {
-        googleId: profile.id,
-        googleName: profile.displayName,
-        avatarUrl: profile.photos?.[0]?.value,
-        email: profile.emails?.[0]?.value,
-      },
-    });
-
-    return user;
-  }
-
-  return findUser;
-}
-
-
-async function getUserById(userId){
-    return await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-            posts: {
-                include: {
-                    author: true,
-                    likes: true,
-                    comments: {
-                        include: {
-                            author: true
-                        }
-                    },
-                }
-            },
-            likes: true,
-            comments: {
-                include: {
-                    author: true,
-                }
-            },
-            friends: {
-                include: {
-                    owner: true,
-                }
-            },
-            friendships: {
-                include:{
-                    friend: true,
-                }
-            },
-        }
-    });
-}
-
-async function getUserByUsername(username){
-    return await prisma.user.findUnique({
-      where: { username: username },
-      include: {
-        posts: {
-            include: {
-                author: true,
-                likes: true,
-                comments: {
-                    include: {
-                        author: true
-                    }
-                },
+    if(addNum){
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                admissionNo: addNum,
             }
-        },
-        likes: true,
-        comments: {
-            include: {
-                author: true,
-            }
-        },
-        friends: {
-          include: {
-            owner: true,
+        })
+    }
+
+    if(staffId){
+        await prisma.user.update({
+          where:{ id: user.id },
+          data: {
+            role: role,
+            staffId: staffId,
           },
-        },
-        friendships: {
-          include: {
-            friend: true,
-          },
-        },
-      },
-    });
-}
-
-async function updateProfile(userId, username, email, bio = null, picUrl = null){
-    await prisma.user.update({
-        where: { id: userId },
-        data: {
-            username: username,
-            email: email,
-            bio: bio,
-            avatarUrl: picUrl
-        }
-    })
-}
-
-async function addNewFriend(ownerId, friendId){
-    await prisma.friend.create({
-        data: {
-            owner: { connect: { id: ownerId } },
-            friend: { connect: { id: friendId } },
-            status: 'PENDING',
-        }
-    });
-}
-
-async function acceptFriendRequest(ownerId, friendId){
-    await prisma.friend.update({
-        where: {
-            ownerId: ownerId,
-            friendId: friendId
-        },
-
-        data: {
-            status: 'ACCEPTED',
-        }
-        
-    });
-}
-
-
-async function rejectFriendRequest(ownerId, friendId){
-    await prisma.friend.update({
-        where: {
-            ownerId: ownerId,
-            friendId: friendId
-        },
-
-        data: {
-            status: 'REJECTED',
-        }
-
-    });
-}
-
-
-async function removeFriend(ownerId, friendId){
-    await prisma.friend.delete({
-        where: {
-            ownerId_friendId: {
-                ownerId: ownerId,
-                friendId: friendId
-            }
-        },
-    });
-}
-
-async function fetchFriend(friendId){
-    return await prisma.friend.findUnique({
-        where: { id: friendId }
-    })
-}
-
-async function getAllUsers(){
-    return await prisma.user.findMany();
-}
-
-async function createNewPost(text, authorId, picUrl = null){
-    await prisma.post.create({
-        data: {
-            text: text,
-            picUrl: picUrl,
-            author: { connect: { id: authorId } }
-        }
-    })
-}
-
-async function fetchPost(postId){
-    return await prisma.post.findUnique({
-        where: { id: postId },
-        include: {
-            comments: {
-                include: {
-                    author: true
-                }
-            },
-            author: true,
-            likes: true,
-        }
-    });
-}
-
-async function globalSearch(query){
-    const search = query.trim();
-    const [users, posts, comments] = await Promise.all([
-        prisma.user.findMany({
-            where: {
-                OR: [
-                    { email: { contains: search, mode: "insensitive" }},
-                    { username: { contains: search, mode: "insensitive" }},
-                ]
-            }
-        }),
-
-        prisma.post.findMany({
-            where: { text: { contains: search, mode: "insensitive" }},
-            include: {
-                author: true, 
-                likes: true, 
-                comments: {
-                    include: {
-                        author: true
-                    }
-                }, 
-            }
-        }),
-
-        prisma.comment.findMany({
-            where: { text: { contains: search, mode: "insensitive" }},
-            include: { author: true }
-        }),    
-    ])
-
-    return {
-        users,
-        posts,
-        comments
+        });
     }
 }
 
-async function getAllPosts(){
-    return await prisma.post.findMany({
-      include: {
-        comments: {
-          include: {
-            author: true,
-          },
-        },
-        author: true,
-        likes: true,
-      },
-    });
-}
 
-async function createNewComment(text, authorId, postId){
-    return await prisma.comment.create({
-        data: {
-            text: text,
-            author: { connect: { id: authorId } },
-            post: { connect: { id: postId } }
-        },
-
+async function fetchStudent(admNo){
+    return await prisma.user.findUnique({
+        where: { admissionNo: admNo },
         include: {
-            author: true,
+            bus: bus,
+            wallet: true,
+            tickets: true,
+            boardings: true,
         }
     })
 }
 
 
-async function deleteComment(commentId){
-    return await prisma.comment.delete({
-        where: { id: commentId }
-    });
+async function fetchStaff(staffId){
+    return await prisma.user.findUnique({
+        where: { staffId: staffId },
+        include: {
+            bus: bus,
+            wallet: true,
+            tickets: true,
+            boardings: true,
+        }
+    })
 }
 
-async function toggleLike(userId, postId) {
-  const existingLike = await prisma.like.findUnique({
-    where: {
-      userId_postId: {
-        userId,
-        postId,
-      },
+async function createNewWallet(userId){
+    await prisma.wallet.create({
+        data: {
+            user: { connect: { id: userId }},
+        }
+    })
+}
+
+
+async function createNewTrip(busId, routeId, departure){
+    await prisma.trip.create({
+        data: {
+            departureTime: departure,
+            bus: { connect: { id: busId }},
+            route: { connect: { id: routeId }},
+        }
+    })
+}
+
+async function fetchTrip(tripId){
+    return await prisma.trip.findUnique({
+        where: { id: tripId }
+    })
+}
+
+async function fetchActiveTrips(){
+    return await prisma.trip.findMany({
+        where: { status: "ACTIVE" }
+    })
+}
+
+
+async function fetchAllTrips(){
+    return await prisma.trip.findMany();
+}
+
+async function markTripAsDone(tripId){
+    await prisma.trip.update({
+        where: { id: tripId },
+        data: {
+            status: "EXPIRED",
+        }
+    })
+}
+
+async function joinTrip(userId, tripId, ticketId, seatNumber){
+    await prisma.tripBoarding.create({
+        data: {
+            seatNumber: seatNumber,
+            user: { connect: { id: userId }},
+            trip: { connect: { id: tripId }},
+            ticket: { connect: { id: ticketId }},
+        }
+    })
+}
+
+async function createNewBus(plateNumber, capacity, operatorId){
+    await prisma.bus.create({
+        data: {
+            capacity: capacity,
+            plateNumber: plateNumber,
+            operator: { connect: { id: operatorId }},
+        }
+    })
+}
+
+
+async function createNewRoute(name, startPoint, endPoint){
+    await prisma.route.create({
+        data: {
+            name: name,
+            startPoint: startPoint,
+            endPoint: endPoint
+        }
+    })
+}
+
+
+async function createNewTicket(qrCode, price, expires, userId){
+    await prisma.ticket.create({
+        data: {
+            qrCode: qrCode,
+            price: price,
+            expiresAt: expires,
+            user: { connect: { id: userId }}
+        }
+    })
+}
+
+async function markTicketAsUsed(ticketId) {
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: {
+      status: "USED",
     },
   });
-
-  if(existingLike){
-    await prisma.like.delete({
-      where: {
-        userId_postId: {
-          userId,
-          postId,
-        },
-      },
-    });
-    return { liked: false };
-  } else {
-    await prisma.like.create({
-      data: {
-        user: { connect: { id: userId } },
-        post: { connect: { id: postId } },
-      },
-    });
-    return { liked: true };
-  }
 }
 
 
-async function getCommentCount(postId){
-    return await prisma.comment.findMany({
-        where: { postId: postId }
-    });
-}
 
-
-async function deletePost(postId){
-    await prisma.post.delete({
-       where: { id: postId }
-    });
-}
 
 module.exports = {
-    fetchPost,
-    getUserById,
-    getAllPosts,
-    getAllUsers,
-    addNewFriend,
-    fetchFriend,
-    removeFriend,
-    globalSearch,
-    acceptFriendRequest,
-    rejectFriendRequest,
-    createNewPost,
-    createNewComment,
-    toggleLike,
-    deletePost,
-    updateProfile,
-    deleteComment,
-    getCommentCount,
-    createNewUserLocal,
-    getUserByUsername,
-    findOrCreateByGoogle,
+    joinTrip,
+    fetchTrip,
+    fetchStaff,
+    createNewBus,
+    fetchStudent,
+    createNewTrip,
+    fetchAllTrips,
+    createNewUser,
+    createNewRoute,
+    markTripAsDone,
+    createNewTicket,
+    createNewWallet,
+    fetchActiveTrips,
+    markTicketAsUsed,
 }
