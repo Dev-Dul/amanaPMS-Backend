@@ -53,7 +53,7 @@ model Bus {
   id          String @id @default(cuid())
   plateNumber String @unique
   capacity    Int
-  operator    User?  @relation(fields: [operatorId], references: [id])
+  operator    User?  @relation(fields: [operatorId], references: [id], onDelete: Cascade)
   operatorId  Int?
   trips       Trip[]
 }
@@ -68,9 +68,9 @@ model Route {
 
 model Trip {
   id      String @id @default(cuid())
-  bus     Bus    @relation(fields: [busId], references: [id])
+  bus     Bus    @relation(fields: [busId], references: [id], onDelete: Cascade)
   busId   String
-  route   Route  @relation(fields: [routeId], references: [id])
+  route   Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
   routeId String
   status  TripStatus @default(ACTIVE)
 
@@ -83,11 +83,11 @@ model Trip {
 
 model TripBoarding {
   id         String @id @default(cuid())
-  user       User   @relation(fields: [userId], references: [id])
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     Int
-  trip       Trip   @relation(fields: [tripId], references: [id])
+  trip       Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   tripId     String
-  ticket     Ticket @relation(fields: [ticketId], references: [id])
+  ticket     Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   ticketId   String
   seatNumber Int
 
@@ -101,7 +101,7 @@ model Ticket {
   price     Float
   expiresAt DateTime
 
-  user         User           @relation(fields: [userId], references: [id])
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       Int
   created      DateTime       @default(now())
   TripBoarding TripBoarding[]
@@ -109,7 +109,7 @@ model Ticket {
 
 model Wallet {
   id      String   @id @default(cuid())
-  user    User     @relation(fields: [userId], references: [id])
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId  Int      @unique
   balance Float    @default(0)
   updated DateTime @updatedAt
