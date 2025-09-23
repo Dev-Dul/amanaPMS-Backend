@@ -78,7 +78,12 @@ async function createNewTrip(busId, routeId, departure){
 
 async function fetchTrip(tripId){
     return await prisma.trip.findUnique({
-        where: { id: tripId }
+        where: { id: tripId },
+        include: {
+            bus: true,
+            route: true,
+            boardings: true,
+        }
     })
 }
 
