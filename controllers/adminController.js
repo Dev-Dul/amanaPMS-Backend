@@ -125,7 +125,6 @@ module.exports = {
     fetchAllRoutes,
     createNewRoute,
     fetchAllStudents,
-    fetchAllStudents,
     fetchAllOperators,
     assignNewOperator,
 }
