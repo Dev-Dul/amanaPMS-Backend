@@ -61,7 +61,7 @@ async function markTripAsDone(req, res){
   if(!tripId) return res.status(400).json({ message: "Incomplete Credentials!" });
 
   try{
-    const trips = await db.markTripAsDone(Number(tripId));
+    await db.markTripAsDone(tripId);
     res.send(200).json({ success: true, message: "Trip successfully marked as done!" });
   }catch(error){
     res.send(500).json({ message: error.message });

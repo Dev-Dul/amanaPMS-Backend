@@ -16,4 +16,4 @@ adminRouter.post("/routes/new", adminController.createNewRoute);
 adminRouter.post("/operators/new", adminController.assignNewOperator);
 
 
-module.exports = gatesRouter;
+module.exports = adminRouter;
