@@ -32,6 +32,18 @@ async function createNewUser(fullname, email, password, role, addNum = null, sta
 }
 
 
+async function assignNewOperator(fullname, email, password, staffId, busId){
+    await prisma.user.create({
+      data: {
+        email: email,
+        staffId: staffId,
+        role: "OPERATOR",
+        fullname: fullname,
+        password: password,
+      },
+    });
+}
+
 async function fetchStudent(admNo){
     return await prisma.user.findUnique({
         where: { admissionNo: admNo },
@@ -56,6 +68,37 @@ async function fetchStaff(staffId){
         }
     })
 }
+
+
+async function fetchUserById(userId){
+    return await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        bus: bus,
+        wallet: true,
+        tickets: true,
+        boardings: true,
+      },
+    });
+}
+
+async function fetchAllUsers(){
+    return await prisma.user.findMany({});
+}
+
+async function fetchAllStudents(){
+    return await prisma.user.findMany({});
+}
+
+async function fetchAllStaff(){
+    return await prisma.user.findMany({});
+}
+
+async function fetchAllOperators(){
+    return await prisma.user.findMany({});
+}
+
+
 
 async function createNewWallet(userId){
     await prisma.wallet.create({
@@ -118,6 +161,7 @@ async function joinTrip(userId, tripId, ticketId, seatNumber){
     })
 }
 
+
 async function createNewBus(plateNumber, capacity, operatorId){
     await prisma.bus.create({
         data: {
@@ -128,6 +172,9 @@ async function createNewBus(plateNumber, capacity, operatorId){
     })
 }
 
+async function fetchAllBuses(){
+  await prisma.bus.findMany();
+}
 
 async function createNewRoute(name, startPoint, endPoint){
     await prisma.route.create({
@@ -139,16 +186,31 @@ async function createNewRoute(name, startPoint, endPoint){
     })
 }
 
+async function fetchAllRoutes(){
+  await prisma.route.findMany();
+}
 
-async function createNewTicket(qrCode, price, expires, userId){
+
+async function createNewTicket(id, qrCode, price, expires, userId){
     await prisma.ticket.create({
         data: {
+            id: id,
             qrCode: qrCode,
             price: price,
             expiresAt: expires,
             user: { connect: { id: userId }}
         }
     })
+}
+
+async function fetchTicket(ticketId){
+    await prisma.ticket.findUnique({
+        where: { id: ticketId }
+    })
+}
+
+async function fetchAllTickets(){
+    await prisma.ticket.findMany()
 }
 
 async function markTicketAsUsed(ticketId) {
@@ -167,15 +229,25 @@ module.exports = {
     joinTrip,
     fetchTrip,
     fetchStaff,
+    fetchTicket,
     createNewBus,
     fetchStudent,
     createNewTrip,
+    fetchUserById,
     fetchAllTrips,
+    fetchAllBuses,
+    fetchAllUsers,
+    fetchAllStaff,
     createNewUser,
     createNewRoute,
+    fetchAllRoutes,
     markTripAsDone,
     createNewTicket,
+    fetchAllTickets,
     createNewWallet,
     fetchActiveTrips,
     markTicketAsUsed,
+    fetchAllStudents,
+    assignNewOperator,
+    fetchAllOperators,
 }

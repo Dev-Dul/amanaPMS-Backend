@@ -5,13 +5,10 @@ const { handleLogin, googleAuthCallback, googleAuthRedirect } = require("../auth
 
 // get routes
 gatesRouter.get("/logout", gatesController.logOut);
-gatesRouter.get("/auth/google", googleAuthRedirect);
-gatesRouter.get("/auth/google/callback", googleAuthCallback);
 gatesRouter.get("/:userId", gatesController.getUserById);
-gatesRouter.get("/user/:userName", gatesController.getUserByUsername);
 
 // post routes
 gatesRouter.post("/login", handleLogin);
-gatesRouter.post("/signup", gatesController.createNewUserLocal);
+gatesRouter.post("/signup", gatesController.createNewUser);
 
 module.exports = gatesRouter;

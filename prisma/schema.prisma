@@ -46,7 +46,7 @@ model User {
   boardings TripBoarding[]
   wallet    Wallet?
   createdAt DateTime       @default(now())
-  Bus       Bus[]
+  bus       Bus[]
 }
 
 model Bus {

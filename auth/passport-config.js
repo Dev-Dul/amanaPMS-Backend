@@ -1,6 +1,5 @@
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const bcrypt = require("bcryptjs");
 const db = require("../models/queries");
 
@@ -24,42 +23,6 @@ passport.use(
   })
 );
 
-
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.DOMAIN}/auth/google/callback`,
-},
-
-async (accessToken, refreshToken, profile, done) => {
-  try {
-    const user = await db.findOrCreateByGoogle(profile);
-    return done(null, user);
-  } catch (err) {
-    return done(err);
-  }
-
-}));
-
-
-
-function googleAuthRedirect(req, res, next) {
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
-}
-
-function googleAuthCallback(req, res, next) {
-  passport.authenticate("google", (err, user, info) => {
-    if(err) return res.redirect(`${process.env.ALLOWED_DOMAIN}/login-failure`);
-    if(!user) return res.redirect(`${process.env.ALLOWED_DOMAIN}/login-failure`);
-
-    req.login(user, (err) => {
-      if(err) return res.redirect(`${process.env.ALLOWED_DOMAIN}/login-failure`);
-
-      // ✅ redirect to frontend after session is set
-      return res.redirect(`${process.env.ALLOWED_DOMAIN}/auth-success`);
-    });
-  })(req, res, next);
-}
 
 
 
