@@ -17,8 +17,9 @@ datasource db {
 enum userRole {
   ADMIN
   STAFF
+  DRIVER
   STUDENT
-  OPERATOR
+  CONDUCTOR
 }
 
 enum TicketStatus {

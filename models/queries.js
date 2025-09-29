@@ -32,14 +32,17 @@ async function createNewUser(fullname, email, password, role, addNum = null, sta
 }
 
 
-async function assignNewOperator(fullname, email, password, staffId, busId){
+async function assignNewOperator(fullname, email, password, staffId, busId, role){
     await prisma.user.create({
       data: {
+        role: role,
         email: email,
         staffId: staffId,
-        role: "OPERATOR",
         fullname: fullname,
         password: password,
+        bus: {
+            connect: { id: busId },
+        }
       },
     });
 }
@@ -98,7 +101,44 @@ async function fetchAllOperators(){
     return await prisma.user.findMany({});
 }
 
+async function fetchOverview(){
+    const [
+      totalUsers,
+      totalTrips,
+      totalStaff,
+      totalBuses,
+      totalRoutes,
+      activeTrips,
+      ticketsSold,
+      totalDrivers,
+      totalStudents,
+      totalConductors,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.tripBoarding.count(),
+      prisma.user.count({ where: { role: "STAFF" } }),
+      prisma.bus.count(),
+      prisma.route.count(),
+      prisma.trip.count({ where: { TripStatus: "ACTIVE" } }),
+      prisma.ticket.count(),
+      prisma.user.count({ where: { role: "DRIVER" } }),
+      prisma.user.count({ where: { role: "STUDENT" } }),
+      prisma.user.count({ where: { role: "CONDUCTOR" } }),
+    ]);
 
+    return {
+       users: totalUsers,
+       trips: totalTrips,
+       staff: totalStaff,
+       buses: totalBuses,
+       routes: totalRoutes,
+       tickets: ticketsSold,
+       drivers: totalDrivers,
+       students: totalStudents,
+       activeTrips: activeTrips,
+       conductors: totalConductors,
+    };
+}
 
 async function createNewWallet(userId){
     await prisma.wallet.create({
@@ -237,6 +277,7 @@ module.exports = {
     fetchAllTrips,
     fetchAllBuses,
     fetchAllUsers,
+    fetchOverview,
     fetchAllStaff,
     createNewUser,
     createNewRoute,
