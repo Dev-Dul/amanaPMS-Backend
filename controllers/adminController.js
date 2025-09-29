@@ -143,6 +143,7 @@ async function fetchAllRoutes(req, res){
 module.exports = {
     addNewBus,
     fetchAllBuses,
+    fetchOverview,
     fetchAllStaff,
     fetchAllUsers,
     fetchAllRoutes,

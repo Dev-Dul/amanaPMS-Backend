@@ -3,6 +3,7 @@ const adminRouter = Router();
 const adminController = require("../controllers/adminController");
 
 // get routes
+adminRouter.get("/overview", adminController.fetchOverview);
 adminRouter.get("/users/all", adminController.fetchAllUsers);
 adminRouter.get("/buses/all", adminController.fetchAllBuses);
 adminRouter.get("/routes/all", adminController.fetchAllRoutes);

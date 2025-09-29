@@ -5,7 +5,9 @@ const session = require("express-session");
 const { PrismaClient } = require("./generated/prisma/client");
 const { PrismaSessionStore } = require("@quixo3/prisma-session-store");
 const { passport } = require("./auth/passport-config");
-const postRouter = require("./routes/postRouter");
+const adminRouter = require("./routes/adminRouter");
+const ticketRouter = require("./routes/ticketRouter");
+const tripRouter = require("./routes/tripRouter");
 const gatesRouter = require("./routes/gatesRouter");
 const profileRouter = require("./routes/profileRouter");
 const { setupSocket } = require("./socket/socket");
@@ -45,8 +47,10 @@ const server = http.createServer(app);
 setupSocket(server);
 
 app.use("/api/v1/", gatesRouter);
-app.use("/api/v1/posts/", postRouter);
+app.use("/api/v1/admin/", adminRouter);
 app.use("/api/v1/profiles/", profileRouter);
+app.use("/api/v1/tickets/", ticketRouter);
+app.use("/api/v1/trips/", tripRouter);
 
 
 
