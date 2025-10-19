@@ -54,16 +54,16 @@ async function fetchAllStaff(req, res){
 }
 
 async function assignNewOperator(req, res){
-    const { fullname, email, password, staffId, busId } = req.body;
+    const { fullname, role, staffId, busId } = req.body;
     if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
-    if(!fullname || !email || !password || !staffId || !busId) return res.status(400).json({ message: "Incomplete Information provided!" });
+    if(!fullname || !role || !staffId || !busId) return res.status(400).json({ message: "Incomplete Information provided!" });
     if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
 
     try{
         const user = await db.fetchStaff(staffId);
         if(user) throw new Error("Account or username already exists!");
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await db.assignNewOperator(fullname, email, hashedPassword, staffId, busId);
+        const hashedPassword = await bcrypt.hash("12345", 10);
+        await db.assignNewOperator(fullname, hashedPassword, staffId, busId, role);
         res.status(200).json({ message: "Operator account created successfully!" });
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -84,14 +84,14 @@ async function fetchAllOperators(req, res){
 }
 
 async function addNewBus(req, res){
-    const { capacity, plateNum, operatorId } = req.body;
+    const { make, model, capacity, plateNum, driverId, conductorId } = req.body;
     if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
-    if(!capacity || !plateNum || !operatorId) return res.status(400).json({ message: "Incomplete Information provided!" });
+    if(!make || !model || !capacity || !plateNum || !driverId || !conductorId) return res.status(400).json({ message: "Incomplete Information provided!" });
     if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
 
 
     try{
-      const bus = await db.createNewBus(plateNum, Number(capacity), Number(operatorId));
+      const bus = await db.createNewBus(make, model, plateNum, Number(capacity), Number(driverId), Number(conductorId));
       res.status(200).json({ success: true, bus: bus });
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -112,13 +112,13 @@ async function fetchAllBuses(req, res){
 }
 
 async function createNewRoute(req, res){
-    const { name, startPoint, endPoint } = req.body;
+    const { name, shortName, startPoint, endPoint } = req.body;
     if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
     if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
-    if(!name || !startPoint || !endPoint) return res.status(400).json({ message: "Incomplete Information provided!" });
+    if(!name || !shortName || !startPoint || !endPoint) return res.status(400).json({ message: "Incomplete Information provided!" });
 
     try{
-      const route = await db.createNewRoute(name, startPoint, endPoint);
+      const route = await db.createNewRoute(name, shortName, startPoint, endPoint);
       res.status(200).json({ success: true, route: route });
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -139,6 +139,35 @@ async function fetchAllRoutes(req, res){
 }
 
 
+async function fetchRecentData(req, res){
+  if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
+  if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
+    
+    try{
+        const data = await db.getTripsLast7Days();
+        res.status(200).json({ success: true, data: data });
+    }catch(err){
+        res.status(500).json({ message: err.message });
+    }
+}
+
+async function fetchWeeklyStats(req, res){
+  const { type } = req.params;
+  if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
+  if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
+  if(!type) return res.status(400).json({ message: "Incomplete Credentials!" });
+  console.log("type:", type);
+    
+    try{
+        const data = await db.getWeeklyStats(type);
+        res.status(200).json({ success: true, data: data });
+    }catch(err){
+        res.status(500).json({ message: err.message });
+    }
+}
+
+
+
 
 module.exports = {
     addNewBus,
@@ -148,7 +177,9 @@ module.exports = {
     fetchAllUsers,
     fetchAllRoutes,
     createNewRoute,
+    fetchRecentData,
     fetchAllStudents,
+    fetchWeeklyStats,
     fetchAllOperators,
     assignNewOperator,
 }

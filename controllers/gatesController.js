@@ -3,21 +3,20 @@ const bcrypt = require("bcryptjs");
 
 
 async function createNewUser(req, res){
-    const { fullname, email, password, role, addNum, staffId } = req.body;
-    if(!fullname || !email || !password, !role) return res.status(400).json({ message: "Incomplete Credentials" });
-    if(role === "STUDENT" && !addNum) return res.status(400).json({ message: "Admission Number is Missing!." });
-    if(role === "STAFF" && !staffId) return res.status(400).json({ message: "StaffId is Missing!." });
+    console.log("body:", req.body);
+    const { fullname, email, password, role, id } = req.body;
+    if(!fullname || !email || !password || !id || !role) return res.status(400).json({ message: "Incomplete Credentials" });
 
     try{
         let user;
-        if(role === "STAFF") user = await db.fetchStaff(staffId);
-        if(role === "STUDENT") user = await db.fetchStudent(addNum);
+        if(role === "STAFF") user = await db.fetchStaff(id);
+        if(role === "STUDENT") user = await db.fetchStudent(id);
         
         if(user) throw new Error("Account or username already exists!");
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        if(role === "STAFF") await db.createNewUser(fullname, email, hashedPassword, role, null, staffId);
-        if(role === "STUDENT") await db.createNewUser(fullname, email, hashedPassword, role, addNum, null);
+        if(role === "STAFF") await db.createNewUser(fullname, email, hashedPassword, role, null, id);
+        if(role === "STUDENT") await db.createNewUser(fullname, email, hashedPassword, role, id, null);
         
         res.status(200).json({ message: `${role} account created successfully!` });
     }catch(err){
@@ -40,6 +39,18 @@ async function getUserById(req, res){
 
 }
 
+async function hydrateUser(req, res){
+    if(!req.user) return res.status(400).json({ message: "Expired!" });
+
+    try{
+        const user = req.user;
+        res.status(200).json({ status: true, user: user });
+    }catch(err){
+        res.status(500).json({ message: err.message });
+    }
+
+}
+
 
 async function logOut(req, res, next){
     if(!req.isAuthenticated()) return res.status(401).json({ message: "No User Logged In!" });
@@ -54,5 +65,6 @@ async function logOut(req, res, next){
 module.exports = {
     logOut,
     getUserById,
+    hydrateUser,
     createNewUser,
 }

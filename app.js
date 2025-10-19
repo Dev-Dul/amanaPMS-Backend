@@ -9,9 +9,11 @@ const adminRouter = require("./routes/adminRouter");
 const ticketRouter = require("./routes/ticketRouter");
 const tripRouter = require("./routes/tripRouter");
 const gatesRouter = require("./routes/gatesRouter");
-const profileRouter = require("./routes/profileRouter");
 const { setupSocket } = require("./socket/socket");
+const db = require("./models/queries");
+const bcrypt = require("bcryptjs");
 const http = require('http');
+
 
 const app = express();
 app.set("trust proxy", 1);
@@ -48,10 +50,43 @@ setupSocket(server);
 
 app.use("/api/v1/", gatesRouter);
 app.use("/api/v1/admin/", adminRouter);
-app.use("/api/v1/profiles/", profileRouter);
 app.use("/api/v1/tickets/", ticketRouter);
 app.use("/api/v1/trips/", tripRouter);
 
+async function createNewUserWallet(){
+  try{
+    await db.createNewWallet(1, 5000);
+    console.log("Succesfully created user wallet");
+  }catch(error){
+    console.error(`Wallet creation failed due to: ${error.message}`);
+  }
+}
+
+async function clearUsers(){
+  try{
+    await db.clearUsers();
+    console.log("Succesfully cleared all user accounts!");
+  }catch(error){
+    console.error(`Deleting accounts failed due to: ${error.message}`);
+  }
+}
+
+
+// clearUsers();
+
+async function createAdminAccount(){
+  try{
+    const password = "admin1234";
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.createNewUser("Dr. Abdullahi Mainasara", "admin.ksusta.edu.ng", hashedPassword, "ADMIN", null, "KSUSTA1234");
+    console.log("Succesfully created Admin Account");
+  }catch(error){
+    console.error(`Admin account creation failed due to: ${error.message}`);
+  }
+}
+
+
+// createAdminAccount();
 
 
 app.use((err, req, res, next) => {

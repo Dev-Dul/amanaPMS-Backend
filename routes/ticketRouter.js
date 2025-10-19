@@ -6,6 +6,7 @@ const ticketController = require("../controllers/ticketController");
 ticketRouter.get("/:ticketId", ticketController.fetchTicket);
 
 // ticket routes
-ticketRouter.ticket("/new", ticketController.createNewTicket);
+ticketRouter.post("/new", ticketController.createNewTicket);
+ticketRouter.post("/verify", ticketController.verifyTicket);
 
 module.exports = ticketRouter;

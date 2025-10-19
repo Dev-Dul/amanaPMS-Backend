@@ -12,6 +12,17 @@ function checkSeatNumber(trip){
     }
 }
 
+
+function checkBalance(user, price){
+    const bal = user.wallet.balance;
+    if(bal < price){
+        return false;
+    }else{
+        return true;
+    }
+}
+
 module.exports = {
+    checkBalance,
     checkSeatNumber
 }

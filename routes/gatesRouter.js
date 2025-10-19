@@ -6,6 +6,7 @@ const { handleLogin, googleAuthCallback, googleAuthRedirect } = require("../auth
 // get routes
 gatesRouter.get("/logout", gatesController.logOut);
 gatesRouter.get("/:userId", gatesController.getUserById);
+gatesRouter.get("/auth/hydrate", gatesController.hydrateUser);
 
 // post routes
 gatesRouter.post("/login", handleLogin);

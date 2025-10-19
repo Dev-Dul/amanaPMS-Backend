@@ -10,9 +10,9 @@ async function createNewTrip(req, res){
 
   try{
     await db.createNewTrip(Number(busId), Number(routeId), departure);
-    res.send(200).json({ message: "New trip created succesfully!"});
+    res.status(200).json({ message: "New trip created succesfully!"});
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -24,9 +24,9 @@ async function fetchTrip(req, res){
 
   try{
     const trip = await db.fetchTrip(Number(tripId));
-    res.send(200).json({ success: true, trip: trip });
+    res.status(200).json({ success: true, trip: trip });
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -36,9 +36,20 @@ async function fetchActiveTrips(req, res){
 
   try{
     const trips = await db.fetchActiveTrips();
-    res.send(200).json({ success: true, trips: trips });
+    res.status(200).json({ success: true, trips: trips });
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
+  }
+}
+
+async function fetchTripsForToday(req, res){
+  if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
+
+  try{
+    const trips = await db.fetchTripsForToday();
+    res.status(200).json({ success: true, trips: trips });
+  }catch(error){
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -48,9 +59,9 @@ async function fetchAllTrips(req, res){
 
   try{
     const trips = await db.fetchAllTrips();
-    res.send(200).json({ success: true, trips: trips });
+    res.status(200).json({ success: true, trips: trips });
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -62,9 +73,9 @@ async function markTripAsDone(req, res){
 
   try{
     await db.markTripAsDone(tripId);
-    res.send(200).json({ success: true, message: "Trip successfully marked as done!" });
+    res.status(200).json({ success: true, message: "Trip successfully marked as done!" });
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -79,14 +90,14 @@ async function joinTrip(req, res){
     const trip = await db.fetchTrip(Number(tripId));
     const seatNum = checkSeatNumber(trip);
     if(seatNum){
-      await db.joinTrip(Number(userId), Number(tripId), seatNum);
+      await db.joinTrip(Number(userId), tripId, ticketId, seatNum);
     }else{
-      res.send(500).json({ success: true, message: "No seat available!" });
+      res.status(500).json({ success: true, message: "No seat available!" });
     }
 
-    res.send(200).json({ success: true, message: "Trip successfully marked as done!" });
+    res.status(200).json({ success: true, message: "Trip successfully marked as done!" });
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -98,4 +109,5 @@ module.exports = {
   fetchAllTrips,
   markTripAsDone,
   fetchActiveTrips,
+  fetchTripsForToday,
 }

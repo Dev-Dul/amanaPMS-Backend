@@ -42,6 +42,7 @@ model User {
   admissionNo String?  @unique
   staffId     String?  @unique
   role        userRole @default(STUDENT)
+  status      String  @default("ACTIVE")
 
   tickets   Ticket[]
   boardings TripBoarding[]
@@ -53,18 +54,40 @@ model User {
 model Bus {
   id          String @id @default(cuid())
   plateNumber String @unique
+  make        String 
+  model       String
   capacity    Int
-  operator    User?  @relation(fields: [operatorId], references: [id], onDelete: Cascade)
-  operatorId  Int?
+  status     String  @default("ACTIVE")
+  driver    User?  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driverId  Int?
+  conductor    User?  @relation(fields: [conductorId], references: [id], onDelete: Cascade)
+  conductorId  Int?
   trips       Trip[]
+  routes      Route[]
 }
 
 model Route {
   id         String @id @default(cuid())
-  name       String
+  name       String  
+  shortName   String  @unique
   startPoint String
   endPoint   String
+  status     String  @default("ACTIVE")
+  bus    Bus?  @relation(fields: [busId], references: [id], onDelete: Cascade)
+  busId  String?
   trips      Trip[]
+  stops      Stop[]
+}
+
+model Stop{
+  id         String @id @default(cuid())
+  name       String
+  startPoint String
+  shortName  String
+  endPoint   String
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  routeId   String
+  price     Float
 }
 
 model Trip {
@@ -73,6 +96,7 @@ model Trip {
   busId   String
   route   Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
   routeId String
+  trip    String @default("OUTBOUND")
   status  TripStatus @default(ACTIVE)
 
   departureTime DateTime
@@ -105,7 +129,7 @@ model Ticket {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       Int
   created      DateTime       @default(now())
-  TripBoarding TripBoarding[]
+  tripBoarding TripBoarding?
 }
 
 model Wallet {
@@ -113,7 +137,9 @@ model Wallet {
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId  Int      @unique
   balance Float    @default(0)
+  type    String   @default("INDIVIDUAL")
   updated DateTime @updatedAt
+  created DateTime @default(now())
 }
 
 model Session {
