@@ -2,7 +2,6 @@ const { PrismaClient } = require("../generated/prisma/client");
 const prisma = new PrismaClient();
 const { startOfWeek, endOfWeek, startOfDay, subDays } = require("date-fns");
 
-
 async function createNewUser(fullname, email, password, role, addNum = null, staffId = null){
     const user = await prisma.user.create({
         data: {
@@ -40,12 +39,19 @@ async function findUserStaffIdOrAddNum(username){
          OR: [{ admissionNo: username }, { staffId: username }],
        },
        include: {
-         bus: true,
+         drivenBuses: true,
+         conductedBuses: true,
          wallet: true,
          tickets: true,
          boardings: {
            include: {
-             trip: true,
+             trip: {
+              include: {
+                bus: true,
+                route: true,
+              }
+             },
+             user: true,
              ticket: true,
            },
          },
@@ -55,29 +61,45 @@ async function findUserStaffIdOrAddNum(username){
 
 
 async function assignNewOperator(fullname, password, staffId, busId, role){
-    await prisma.user.create({
+   const user = await prisma.user.create({
       data: {
         role: role,
         staffId: staffId,
         fullname: fullname,
         password: password,
-        bus: {
-            connect: { id: busId },
-        }
       },
     });
+
+    if(role === "DRIVER"){
+      await prisma.bus.update({
+        where: { id: busId },
+        data: { driverId: user.id },
+      });
+    }else if(role === "CONDUCTOR"){
+      await prisma.bus.update({
+        where: { id: busId },
+        data: { conductorId: user.id },
+      });
+    }
 }
 
 async function fetchStudent(admNo){
     return await prisma.user.findUnique({
       where: { admissionNo: admNo },
       include: {
-        bus: true,
+        drivenBuses: true,
+        conductedBuses: true,
         wallet: true,
         tickets: true,
         boardings: {
           include: {
-            trip: true,
+            trip: {
+              include: {
+                bus: true,
+                route: true,
+              }
+            },
+            user: true,
             ticket: true,
           },
         },
@@ -90,12 +112,19 @@ async function fetchStaff(staffId){
     return await prisma.user.findUnique({
       where: { staffId: staffId },
       include: {
-        bus: true,
+        drivenBuses: true,
+        conductedBuses: true,
         wallet: true,
         tickets: true,
         boardings: {
           include: {
-            trip: true,
+            trip: {
+              include: {
+                bus: true,
+                route: true,
+              }
+            },
+            user: true,
             ticket: true,
           },
         },
@@ -108,26 +137,39 @@ async function fetchUserById(userId){
     return await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        bus: true,
+        drivenBuses: true,
+        conductedBuses: true,
         wallet: true,
         tickets: true,
         boardings: {
-          include: {
-            trip: true,
-            ticket: true,
-          }
-        },
+           include: {
+             trip: {
+              include: {
+                bus: true,
+                route: true,
+              }
+             },
+             user: true,
+             ticket: true,
+           },
+         },
       },
     });
 }
 
 async function fetchAllUsers(){
     return await prisma.user.findMany({
+      where: {
+        role: {
+          not: "ADMIN"
+        }
+      },
       include: {
-        bus: true,
         wallet: true,
         tickets: true,
         boardings: true,
+        drivenBuses: true,
+        conductedBuses: true,
       }
     });
 }
@@ -158,6 +200,10 @@ async function fetchAllOperators(){
             role: {
                 in: ["CONDUCTOR", "DRIVER"]
             }
+        }, 
+        include: {
+          drivenBuses: true,
+          conductedBuses: true,
         }
     });
 }
@@ -270,8 +316,17 @@ async function fetchTrip(tripId){
     return await prisma.trip.findUnique({
         where: { id: tripId },
         include: {
-            bus: true,
-            route: true,
+            bus: {
+              include: {
+                driver: true,
+                conductor: true,
+              }
+            },
+            route: {
+              include: {
+                stops: true,
+              }
+            },
             boardings: {
               include: {
                 user: true,
@@ -348,9 +403,31 @@ async function createNewBus(make, model, plateNumber, capacity, driverId, conduc
     })
 }
 
+async function assignRoutesToBuses(){
+  const routes = await prisma.route.findMany();
+  const buses = await prisma.bus.findMany();
+
+  for(const bus of buses){
+    await prisma.bus.update({
+      where: { id: bus.id },
+      data: {
+        routes:{
+          connect: routes.map(r => ({ id: r.id }))
+        }
+      }
+    })
+  }
+}
+
 async function fetchAllBuses(){
-  // routes: true,
-  return await prisma.bus.findMany({});
+  return await prisma.bus.findMany({
+    include: {
+      trips: true,
+      routes: true,
+      driver: true,
+      conductor: true
+    }
+  });
 }
 
 async function createNewRoute(name, shortName, startPoint, endPoint, stops = null){
@@ -592,5 +669,6 @@ module.exports = {
     fetchTicketByToken,
     fetchTripsForToday,
     getTripsLast7Days,
+    assignRoutesToBuses,
     findUserStaffIdOrAddNum,
 }

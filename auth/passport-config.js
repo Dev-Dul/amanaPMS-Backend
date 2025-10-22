@@ -53,7 +53,7 @@ function handleLogin(req, res, next) {
   passport.authenticate("local", (err, user, info) => {
     if(err) return next(err);
     if(!user){
-      return res.status(401).json({message: info?.message || "Invalid admission number or staff ID",});
+      return res.status(400).json({message: info?.message || "Invalid admission number or staff ID"});
     }
 
     req.login(user, (err) => {
@@ -62,6 +62,8 @@ function handleLogin(req, res, next) {
       // Return full user object
       return res.status(200).json({ message: "Login successful", user });
     });
+
+    
   })(req, res, next);
 }
 

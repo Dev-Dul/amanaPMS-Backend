@@ -48,7 +48,8 @@ model User {
   boardings TripBoarding[]
   wallet    Wallet?
   createdAt DateTime       @default(now())
-  bus       Bus[]
+  drivenBuses       Bus[]  @relation("driverRelation")
+  conductedBuses       Bus[]  @relation("conductorRelation")
 }
 
 model Bus {
@@ -58,9 +59,9 @@ model Bus {
   model       String
   capacity    Int
   status     String  @default("ACTIVE")
-  driver    User?  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driver    User?  @relation("driverRelation", fields: [driverId], references: [id], onDelete: Cascade)
   driverId  Int?
-  conductor    User?  @relation(fields: [conductorId], references: [id], onDelete: Cascade)
+  conductor    User?  @relation("conductorRelation", fields: [conductorId], references: [id], onDelete: Cascade)
   conductorId  Int?
   trips       Trip[]
   routes      Route[]
@@ -96,7 +97,7 @@ model Trip {
   busId   String
   route   Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
   routeId String
-  trip    String @default("OUTBOUND")
+  type    String @default("OUTBOUND")
   status  TripStatus @default(ACTIVE)
 
   departureTime DateTime
@@ -113,10 +114,10 @@ model TripBoarding {
   trip       Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   tripId     String
   ticket     Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  ticketId   String
+  ticketId   String @unique
   seatNumber Int
 
-  boardedAt DateTime @default(now())
+  boardedAt DateTime @default(now())     
 }
 
 model Ticket {

@@ -156,7 +156,6 @@ async function fetchWeeklyStats(req, res){
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
   if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
   if(!type) return res.status(400).json({ message: "Incomplete Credentials!" });
-  console.log("type:", type);
     
     try{
         const data = await db.getWeeklyStats(type);

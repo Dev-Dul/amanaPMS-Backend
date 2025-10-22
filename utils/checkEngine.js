@@ -1,11 +1,11 @@
 function checkSeatNumber(trip){
-    const lastBus = trip.bus;
-    if(trip.boardings[trip.boardings.length - 1]){
+    const tripBus = trip.bus;
+    if(trip.boardings.length <= tripBus.capacity){
         const lastTrip = trip.boardings[trip.boardings.length - 1];
-        if(lastTrip.seatNumber > lastBus.capacity){
-            return false;
-        }else{
+        if(lastTrip){
             return lastTrip.seatNumber++;
+        }else{
+            return 1;
         }
     }else{
         return false;

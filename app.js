@@ -21,6 +21,7 @@ app.use(cors({
     origin: process.env.ALLOWED_DOMAIN,
     credentials: true,
 }));
+const sevenDays = 7 * 24 * 60 * 60 * 1000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(
@@ -29,16 +30,16 @@ app.use(
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : undefined,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: sevenDays,
     },
     secret: "dattebayo!",
-    resave: true,
+    resave: false,
     saveUninitialized: false,
     store: new PrismaSessionStore(new PrismaClient(), {
-      checkPeriod: 2 * 60 * 1000,
+      checkPeriod: 60 * 60 * 1000,
       dbRecordIdIsSessionId: true,
       dbRecordIdFunction: undefined,
-      ttl: 60 * 60 * 24 * 7,
+      ttl: sevenDays / 1000,
     }),
   })
 );
@@ -62,6 +63,17 @@ async function createNewUserWallet(){
   }
 }
 
+async function createNewTrip(){
+  try{
+    await db.createNewTrip("cmh0r00jr000kepygx5vwt0pc", "cmh0qzwe20000epyg3aofov8h", new Date());
+    console.log("Succesfully created new trip");
+  }catch(error){
+    console.error(`Trip creation failed due to: ${error.message}`);
+  }
+}
+
+// createNewTrip();
+
 async function clearUsers(){
   try{
     await db.clearUsers();
@@ -73,6 +85,17 @@ async function clearUsers(){
 
 
 // clearUsers();
+
+async function assignRoutes(){
+  try{
+    await db.assignRoutesToBuses();
+    console.log("Succesfully assigned routes to buses!");
+  }catch(error){
+    console.error(`Assigning routes failed due to: ${error.message}`);
+  }
+}
+
+// assignRoutes();
 
 async function createAdminAccount(){
   try{

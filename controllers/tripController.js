@@ -23,7 +23,7 @@ async function fetchTrip(req, res){
   if(!tripId) return res.status(400).json({ message: "Incomplete Credentials!" });
 
   try{
-    const trip = await db.fetchTrip(Number(tripId));
+    const trip = await db.fetchTrip(tripId);
     res.status(200).json({ success: true, trip: trip });
   }catch(error){
     res.status(500).json({ message: error.message });
@@ -42,7 +42,7 @@ async function fetchActiveTrips(req, res){
   }
 }
 
-async function fetchTripsForToday(req, res){
+async function fetchTodaysTrips(req, res){
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
 
   try{
@@ -109,5 +109,5 @@ module.exports = {
   fetchAllTrips,
   markTripAsDone,
   fetchActiveTrips,
-  fetchTripsForToday,
+  fetchTodaysTrips,
 }

@@ -3,7 +3,6 @@ const bcrypt = require("bcryptjs");
 
 
 async function createNewUser(req, res){
-    console.log("body:", req.body);
     const { fullname, email, password, role, id } = req.body;
     if(!fullname || !email || !password || !id || !role) return res.status(400).json({ message: "Incomplete Credentials" });
 

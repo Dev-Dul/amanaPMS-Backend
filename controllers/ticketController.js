@@ -16,12 +16,15 @@ async function createNewTicket(req, res){
   try{
     const ticketId = 'tk' + crypto.randomBytes(8).toString('hex');
     const qrToken = crypto.randomBytes(16).toString('hex');
-    const trip = await db.fetchTrip(Number(tripId));
+    const trip = await db.fetchTrip(tripId);
     const seatNum = checkSeatNumber(trip);
-    await db.createNewTicket(ticketId, qrToken, price, Number(userId), tripId, seatNum);
-    res.send(200).json({ message: "New ticket created succesfully!"});
+    if(!seatNum) return res.status(403).json({ message: "No available seat!" });
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    await db.createNewTicket(ticketId, qrToken, Number(price), tomorrow, Number(userId), tripId, seatNum);
+    res.status(200).json({ message: "Ticket purchased succesfully!"});
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -32,9 +35,9 @@ async function fetchTicket(req, res){
 
   try {
     const ticket = await db.fetchTicket(ticketId);
-    res.send(200).json({ success: true, ticket: ticket });
+    res.status(200).json({ success: true, ticket: ticket });
   } catch (error) {
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -51,9 +54,9 @@ async function verifyTicket(req, res){
     if(check) return res.status(409).json({ message: "Invalid ticket!" });
 
     await db.markTicketAsUsed(ticket.id);
-    res.send(200).json({ message: "Ticket successfully verified!", ticket: ticket });
+    res.status(200).json({ message: "Ticket successfully verified!", ticket: ticket });
   }catch(error){
-    res.send(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
