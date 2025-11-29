@@ -17,9 +17,18 @@ datasource db {
 enum userRole {
   ADMIN
   STAFF
-  DRIVER
-  STUDENT
-  CONDUCTOR
+  CUSTOMER
+}
+
+enum itemType {
+  OTHER
+  COSMETIC
+}
+
+enum purchaseType {
+  DRUG
+  OTHER
+  COSMETIC
 }
 
 enum TicketStatus {
@@ -28,118 +37,87 @@ enum TicketStatus {
   EXPIRED
 }
 
-
-enum TripStatus {
-  ACTIVE
-  EXPIRED
-}
-
 model User {
-  id          Int      @id @default(autoincrement())
-  fullname    String
-  email       String?  @unique
-  password    String
-  admissionNo String?  @unique
-  staffId     String?  @unique
-  role        userRole @default(STUDENT)
-  status      String  @default("ACTIVE")
-
-  tickets   Ticket[]
-  boardings TripBoarding[]
-  wallet    Wallet?
-  createdAt DateTime       @default(now())
-  drivenBuses       Bus[]  @relation("driverRelation")
-  conductedBuses       Bus[]  @relation("conductorRelation")
+  id         Int        @id @default(autoincrement())
+  fullname   String
+  username   String     @unique
+  email      String?    @unique
+  password   String
+  role       userRole   @default(STAFF)
+  status     String     @default("ACTIVE")
+  telegramId String?     @unique
+  created    DateTime   @default(now())
+  drugs      Drug[]
+  items      Item[]
+  purchases  Purchase[]
+  batches    Batch[]
 }
 
-model Bus {
-  id          String @id @default(cuid())
-  plateNumber String @unique
-  make        String 
-  model       String
-  capacity    Int
-  status     String  @default("ACTIVE")
-  driver    User?  @relation("driverRelation", fields: [driverId], references: [id], onDelete: Cascade)
-  driverId  Int?
-  conductor    User?  @relation("conductorRelation", fields: [conductorId], references: [id], onDelete: Cascade)
-  conductorId  Int?
-  trips       Trip[]
-  routes      Route[]
+model Drug {
+  id           String     @id @default(cuid())
+  name         String
+  type         String
+  price        Float
+  cost         Float
+  quantity     Int  
+  isAvailable  Boolean    @default(true)      
+  updated      DateTime   @updatedAt
+  nafdacNum    String     @unique
+  registered   DateTime   @default(now())
+  registeredBy User       @relation(fields: [registererId], references: [id], onDelete: Cascade)
+  registererId Int
+  updatedBy User       @relation(fields: [updatedById], references: [id], onDelete: Cascade)
+  updatedById Int
+  manufacturer String
+  purchases     Purchase[]
 }
 
-model Route {
-  id         String @id @default(cuid())
-  name       String  
-  shortName   String  @unique
-  startPoint String
-  endPoint   String
-  status     String  @default("ACTIVE")
-  bus    Bus?  @relation(fields: [busId], references: [id], onDelete: Cascade)
-  busId  String?
-  trips      Trip[]
-  stops      Stop[]
+model Item {
+  id           String     @id @default(cuid())
+  name         String
+  type         itemType   @default(OTHER)
+  manufacturer String
+  price        Float
+  cost         Float
+  quantity     Int    
+  isAvailable  Boolean    @default(true)    
+  registered   DateTime   @default(now())
+  updated      DateTime   @updatedAt
+  registeredBy User       @relation(fields: [registererId], references: [id], onDelete: Cascade)
+  registererId Int
+  updatedBy User       @relation(fields: [updatedById], references: [id], onDelete: Cascade)
+  updatedById Int
+  purchases    Purchase[]
 }
 
-model Stop{
-  id         String @id @default(cuid())
-  name       String
-  startPoint String
-  shortName  String
-  endPoint   String
-  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  routeId   String
-  price     Float
+model Purchase {
+  id       String       @id @default(cuid())
+  type     purchaseType @default(DRUG)
+  seller   User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId Int
+  quantity Int          
+  item     Item?        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId   String?
+  drug     Drug?        @relation(fields: [drugId], references: [id], onDelete: Cascade)
+  drugId   String?
+  created  DateTime     @default(now())
 }
 
-model Trip {
-  id      String @id @default(cuid())
-  bus     Bus    @relation(fields: [busId], references: [id], onDelete: Cascade)
-  busId   String
-  route   Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  routeId String
-  type    String @default("OUTBOUND")
-  status  TripStatus @default(ACTIVE)
-
-  departureTime DateTime
-  arrivalTime   DateTime?
-
-  boardings TripBoarding[]
-  created   DateTime       @default(now())
+model Batch {
+  id           String   @id @default(cuid())
+  totalDrugs   Int
+  totalItems   Int
+  totalCost    Float
+  registeredBy User     @relation(fields: [registererId], references: [id], onDelete: Cascade)
+  registererId Int
+  purchaseDate DateTime @default(now())
 }
 
-model TripBoarding {
-  id         String @id @default(cuid())
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     Int
-  trip       Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  tripId     String
-  ticket     Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  ticketId   String @unique
-  seatNumber Int
-
-  boardedAt DateTime @default(now())     
-}
-
-model Ticket {
-  id        String       @id
-  qrCode    String       @unique
-  status    TicketStatus @default(ACTIVE)
-  price     Float
-  expiresAt DateTime
-
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       Int
-  created      DateTime       @default(now())
-  tripBoarding TripBoarding?
-}
-
-model Wallet {
+model Notification {
   id      String   @id @default(cuid())
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId  Int      @unique
-  balance Float    @default(0)
-  type    String   @default("INDIVIDUAL")
-  updated DateTime @updatedAt
+  title   String
+  text    String
+  type    String
   created DateTime @default(now())
 }
 

@@ -56,12 +56,15 @@ app.use("/api/v1/trips/", tripRouter);
 
 async function createNewUserWallet(){
   try{
-    await db.createNewWallet(1, 5000);
+    const user = await db.findUserStaffIdOrAddNum("2010203057");
+    await db.createNewWallet(user.id, 10000);
     console.log("Succesfully created user wallet");
   }catch(error){
     console.error(`Wallet creation failed due to: ${error.message}`);
   }
 }
+
+// createNewUserWallet();
 
 async function createNewTrip(){
   try{
@@ -72,8 +75,7 @@ async function createNewTrip(){
   }
 }
 
-// createNewTrip();
-
+createNewTrip();
 async function clearUsers(){
   try{
     await db.clearUsers();

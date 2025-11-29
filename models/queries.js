@@ -2,189 +2,113 @@ const { PrismaClient } = require("../generated/prisma/client");
 const prisma = new PrismaClient();
 const { startOfWeek, endOfWeek, startOfDay, subDays } = require("date-fns");
 
-async function createNewUser(fullname, email, password, role, addNum = null, staffId = null){
+async function createNewUser(fullname, email, password, telegramId){
     const user = await prisma.user.create({
         data: {
-            fullname: fullname,
+            role: "ADMIN",
             email: email,
-            password: password
+            fullname: fullname,
+            password: password,
+            telegramId: telegramId ?? undefined,
         }
     });
-
-    if(addNum){
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                admissionNo: addNum,
-            }
-        })
-    }
-
-    if(staffId){
-        await prisma.user.update({
-          where:{ id: user.id },
-          data: {
-            role: role,
-            staffId: staffId,
-          },
-        });
-    }
 }
 
 
-
-async function findUserStaffIdOrAddNum(username){
-     return await prisma.user.findFirst({
-       where: {
-         OR: [{ admissionNo: username }, { staffId: username }],
-       },
+async function findUserByUsername(username){
+     return await prisma.user.findUnique({
+      where: { username },
        include: {
-         drivenBuses: true,
-         conductedBuses: true,
-         wallet: true,
-         tickets: true,
-         boardings: {
-           include: {
-             trip: {
-              include: {
-                bus: true,
-                route: true,
-              }
-             },
-             user: true,
-             ticket: true,
-           },
-         },
+        drugs: true,
+        items: true,
+        batches: true,
+        purchase: {
+          include: {
+            item: true,
+            drug: true
+          }
+        }
        },
      });
 }
 
 
-async function assignNewOperator(fullname, password, staffId, busId, role){
+async function findUserByTGId(telegramId){
+     return await prisma.user.findUnique({
+      where: { telegramId },
+       include: {
+        drugs: true,
+        items: true,
+        batches: true,
+        purchase: {
+          include: {
+            item: true,
+            drug: true
+          }
+        }
+       },
+     });
+}
+
+
+async function assignNewStaff(fullname, password, email, username){
    const user = await prisma.user.create({
       data: {
-        role: role,
-        staffId: staffId,
+        role: "STAFF",
+        email: email,
         fullname: fullname,
+        username: username,
         password: password,
       },
     });
 
-    if(role === "DRIVER"){
-      await prisma.bus.update({
-        where: { id: busId },
-        data: { driverId: user.id },
-      });
-    }else if(role === "CONDUCTOR"){
-      await prisma.bus.update({
-        where: { id: busId },
-        data: { conductorId: user.id },
-      });
-    }
+    return user;
+
 }
 
-async function fetchStudent(admNo){
-    return await prisma.user.findUnique({
-      where: { admissionNo: admNo },
-      include: {
-        drivenBuses: true,
-        conductedBuses: true,
-        wallet: true,
-        tickets: true,
-        boardings: {
-          include: {
-            trip: {
-              include: {
-                bus: true,
-                route: true,
-              }
-            },
-            user: true,
-            ticket: true,
-          },
-        },
-      },
-    });
-}
-
-
-async function fetchStaff(staffId){
-    return await prisma.user.findUnique({
-      where: { staffId: staffId },
-      include: {
-        drivenBuses: true,
-        conductedBuses: true,
-        wallet: true,
-        tickets: true,
-        boardings: {
-          include: {
-            trip: {
-              include: {
-                bus: true,
-                route: true,
-              }
-            },
-            user: true,
-            ticket: true,
-          },
-        },
-      },
-    });
-}
 
 
 async function fetchUserById(userId){
     return await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        drivenBuses: true,
-        conductedBuses: true,
-        wallet: true,
-        tickets: true,
-        boardings: {
-           include: {
-             trip: {
-              include: {
-                bus: true,
-                route: true,
-              }
-             },
-             user: true,
-             ticket: true,
-           },
-         },
+        drugs: true,
+        items: true,
+        batches: true,
+        purchase: {
+          include: {
+            item: true,
+            drug: true
+          }
+        }
       },
     });
 }
+
 
 async function fetchAllUsers(){
     return await prisma.user.findMany({
       where: {
         role: {
-          not: "ADMIN"
-        }
+          not: "ADMIN",
+        },
       },
       include: {
-        wallet: true,
-        tickets: true,
-        boardings: true,
-        drivenBuses: true,
-        conductedBuses: true,
-      }
+        include: {
+          drugs: true,
+          items: true,
+          batches: true,
+          purchase: true,
+        },
+      },
     });
 }
 
-async function fetchAllStudents(){
-    return await prisma.user.findMany({
-        where: {
-            role: "STUDENT"
-        }
-    });
-}
 
 async function clearUsers(){
   await prisma.user.deleteMany();
 }
+
 
 async function fetchAllStaff(){
     return await prisma.user.findMany({
@@ -194,19 +118,6 @@ async function fetchAllStaff(){
     });
 }
 
-async function fetchAllOperators(){
-    return await prisma.user.findMany({
-        where: { 
-            role: {
-                in: ["CONDUCTOR", "DRIVER"]
-            }
-        }, 
-        include: {
-          drivenBuses: true,
-          conductedBuses: true,
-        }
-    });
-}
 
 async function fetchOverview() {
   // Get start and end of current day
@@ -218,73 +129,58 @@ async function fetchOverview() {
 
   const [
     totalUsers,
-    totalTrips,
+    totalDrugs,
+    totalItems,
     totalStaff,
-    totalBuses,
-    totalRoutes,
-    activeTrips,
-    ticketsSold,
-    totalDrivers,
-    totalStudents,
-    totalConductors,
+    totalBatches,
+    finishedDrugs,
+    finishedItems,
+    availableDrugs,
+    availableItems,
+    totalPurchases,
     totalRevenue,
-    tripsToday,
-    ticketsToday,
-    revenueToday,
-    passengersToday
+    revenueToday
   ] = await Promise.all([
     // All-time stats
     prisma.user.count(),
-    prisma.tripBoarding.count(),
+    prisma.drug.count(),
+    prisma.item.count(),
     prisma.user.count({ where: { role: "STAFF" } }),
-    prisma.bus.count(),
-    prisma.route.count(),
-    prisma.trip.count({ where: { status: "ACTIVE" } }),
-    prisma.ticket.count(),
-    prisma.user.count({ where: { role: "DRIVER" } }),
-    prisma.user.count({ where: { role: "STUDENT" } }),
-    prisma.user.count({ where: { role: "CONDUCTOR" } }),
-    prisma.ticket.aggregate({
+    prisma.batch.count(),
+    prisma.drug.count( { where: { isAvailable: false }} ),
+    prisma.item.count( { where: { isAvailable: false }} ),
+    prisma.drug.count( { where: { isAvailable: true }} ),
+    prisma.item.count( { where: { isAvailable: true }} ),
+    prisma.purchase.count(),
+    prisma.purchase.aggregate({
       _sum: { price: true }
     }),
 
     // Today's stats
-    prisma.tripBoarding.count({
-      where: { boardedAt: { gte: startOfDay, lte: endOfDay } }
-    }),
-    prisma.ticket.count({
-      where: { created: { gte: startOfDay, lte: endOfDay } }
-    }),
-    prisma.ticket.aggregate({
+    prisma.purchase.aggregate({
       _sum: { price: true },
       where: { created: { gte: startOfDay, lte: endOfDay } }
     }),
-    prisma.ticket.findMany({
-      where: { created: { gte: startOfDay, lte: endOfDay } },
-      select: { userId: true },
-      distinct: ["userId"]
-    })
+
   ]);
 
   return {
     // All-time stats
     users: totalUsers,
-    trips: totalTrips,
+    allDrugs: totalDrugs,
+    items: totalItems,
     staff: totalStaff,
-    buses: totalBuses,
     routes: totalRoutes,
-    tickets: ticketsSold,
-    drivers: totalDrivers,
-    students: totalStudents,
-    activeTrips: activeTrips,
-    conductors: totalConductors,
+    batches: totalBatches,
+    finshedDrugs: finishedDrugs,
+    finishedItems: finishedItems,
+    availableDrugs: availableDrugs,
+    availableItems: availableItems,
+    totalPurchases: totalPurchases,
     totalRevenue: totalRevenue._sum.price || 0,
 
     // Today's stats
     today: {
-      trips: tripsToday,
-      passengers: passengersToday.length,
-      tickets: ticketsToday,
       revenue: revenueToday._sum.price || 0
     }
   };
@@ -292,245 +188,240 @@ async function fetchOverview() {
 
 
 
-async function createNewWallet(userId, balance){
-    await prisma.wallet.create({
+
+async function registerNewDrug(name, price, nafdac, quantity, manufacturer, type, userId){
+    await prisma.drug.create({
         data: {
-            balance: balance ?? undefined,
-            user: { connect: { id: userId }},
+            name: name,
+            type: type,
+            price: price,
+            nafdacNum: nafdac,
+            quantity: quantity,
+            manufacturer: manufacturer,
+            registeredBy: { connect: { id: userId }}
         }
     })
 }
 
-
-async function createNewTrip(busId, routeId, departure){
-    await prisma.trip.create({
-        data: {
-            departureTime: departure,
-            bus: { connect: { id: busId }},
-            route: { connect: { id: routeId }},
-        }
-    })
-}
-
-async function fetchTrip(tripId){
-    return await prisma.trip.findUnique({
-        where: { id: tripId },
+async function fetchDrug(drugId){
+    return await prisma.drug.findUnique({
+        where: { id: drugId },
         include: {
-            bus: {
-              include: {
-                driver: true,
-                conductor: true,
-              }
-            },
-            route: {
-              include: {
-                stops: true,
-              }
-            },
-            boardings: {
-              include: {
-                user: true,
-                trip: true,
-                ticket: true
-              }
-            },
+            purchase: true,
+            registeredBy: true
         }
     })
 }
 
-async function fetchTripsForToday(){
+
+async function updateDrug(drugId, name, type, price, nafdac, manufacturer, cost, userId){
+    return await prisma.drug.update({
+        where: { id: drugId },
+        data: {
+          name: name,
+          cost: cost,
+          type: type,
+          price: price,
+          nafdacNum: nafdac,
+          manufacturer: manufacturer,
+          updatedBy: { connect: { id: userId }}
+        }
+    })
+}
+
+
+async function deleteDrug(drugId){
+    return await prisma.drug.delete({
+        where: { id: drugId },
+    })
+}
+
+
+async function fetchAllDrugs(){
+    return await prisma.drug.findMany({
+        include: {
+            purchase: true,
+            registeredBy: true
+        }
+    })
+}
+
+async function fetchPurchasesForToday(){
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
     const endOfToday = new Date();
     endOfToday.setHours(23, 59, 59, 9999);
 
-    return await prisma.trip.findMany({
+    return await prisma.purchase.findMany({
         where: { created: {
             gte: startOfToday,
             lte: endOfToday,
         } },
         include: {
-            bus: true,
-            route: true,
-            boardings: true,
-        }
-    })
-}
-
-async function fetchActiveTrips(){
-    return await prisma.trip.findMany({
-        where: { status: "ACTIVE" }
-    })
-}
-
-
-async function fetchAllTrips(){
-    return await prisma.trip.findMany();
-}
-
-async function markTripAsDone(tripId){
-    await prisma.trip.update({
-        where: { id: tripId },
-        data: {
-            status: "EXPIRED",
-        }
-    })
-}
-
-async function joinTrip(userId, tripId, ticketId, seatNumber){
-    await prisma.tripBoarding.create({
-        data: {
-            seatNumber: seatNumber,
-            user: { connect: { id: userId }},
-            trip: { connect: { id: tripId }},
-            ticket: { connect: { id: ticketId }},
+            item: true,
+            drug: true,
+            seller: true,
         }
     })
 }
 
 
-async function createNewBus(make, model, plateNumber, capacity, driverId, conductorId){
-    await prisma.bus.create({
-        data: {
-            make: make,
-            model: model,
-            capacity: capacity,
-            plateNumber: plateNumber,
-            driver: { connect: { id: driverId }},
-            conductor: { connect: { id: conductorId }},
-        }
-    })
+async function fetchAllPurchases(){
+    return await prisma.purchase.findMany();
 }
 
-async function assignRoutesToBuses(){
-  const routes = await prisma.route.findMany();
-  const buses = await prisma.bus.findMany();
 
-  for(const bus of buses){
-    await prisma.bus.update({
-      where: { id: bus.id },
-      data: {
-        routes:{
-          connect: routes.map(r => ({ id: r.id }))
-        }
-      }
-    })
-  }
-}
-
-async function fetchAllBuses(){
-  return await prisma.bus.findMany({
-    include: {
-      trips: true,
-      routes: true,
-      driver: true,
-      conductor: true
-    }
-  });
-}
-
-async function createNewRoute(name, shortName, startPoint, endPoint, stops = null){
-    await prisma.route.create({
+async function registerNewItem(name, type, quantity, manufacturer, price, cost, userId){
+    await prisma.item.create({
         data: {
             name: name,
-            endPoint: endPoint,
-            shortName: shortName,
-            startPoint: startPoint,
-            // stops: 
+            cost: cost,
+            type: type,
+            price: price,
+            quantity: quantity,
+            manufacturer: manufacturer,
+            registeredBy: { connect: { id: userId }}
         }
     })
 }
 
-async function fetchAllRoutes(){
-  return await prisma.route.findMany({
+
+async function fetchItem(itemId){
+  return await prisma.bus.findUnique({
+    where: { id: itemId },
     include: {
-      stops: true,
-      trips: true,
+     purchases: true,
+     registeredBy: true,
     }
+  });
+}
+async function updateItem(itemId, name, type, price, cost, manufacturer, updatedBy) {
+  return await prisma.item.update({
+    where: { id: itemId },
+    data: {
+      name: name,
+      cost: cost,
+      type: type,
+      price: price,
+      manufacturer: manufacturer,
+      updatedBy: { connect: { id: updatedBy }}
+    },
   });
 }
 
 
-async function createNewTicket(id, qrCode, price, expires, userId, tripId, seatNum){
-    await prisma.$transaction(async(tx) => {
-        const wallet = await tx.wallet.findUnique({
-            where: { userId },
-            select: { id: true, balance: true }
-        });
+async function deleteItem(itemId){
+  return await prisma.bus.delete({
+    where: { id: itemId },
+  });
+}
 
-        if(!wallet) throw new Error("wallet not found");
 
-        await tx.wallet.update({
-            where: { id: wallet.id },
-            data: {
-                balance: { decrement: price }
-            }
-        });
+async function fetchAllItems(){
+  return await prisma.bus.findMany({
+    include: {
+     purchases: true,
+     registeredBy: true,
+    }
+  });
+}
 
-        const ticket = await tx.ticket.create({
-            data: {
-                id: id,
-                qrCode: qrCode,
-                price: price,
-                expiresAt: expires,
-                user: { connect: { id: userId }}
-            }
-        })
+async function registerNewPurchase(type, qtt, sellerId, drugId = null, itemId = null){
+  await prisma.$transaction(async (tx) => {
+    await prisma.tx.create({
+        data: {
+            type: type,
+            quantity: quantity,
+            seller: { connect: { id: sellerId }},
+            ...(drugId && { drug: { connect: { id: drugId }}}),
+            ...(itemId && { item: { connect: { id: itemId }}})
+        }
+    })
 
-        await tx.tripBoarding.create({
-          data: {
-            seatNumber: seatNum,
-            user: { connect: { id: userId } },
-            trip: { connect: { id: tripId } },
-            ticket: { connect: { id: ticket.id } },
+    if(drugId){
+      await tx.drug.update({
+        where: { id: drugId },
+        data: {
+          quantity: {
+            decrement: qtt
+          }
+        }
+      })
+    }else{
+      await tx.item.update({
+        where: { id: itemId },
+        data: {
+          quantity: {
+            decrement: qtt,
           },
-        });
-    })
+        },
+      });
+    }
+
+  })
 }
 
-async function fetchTicket(ticketId){
-    await prisma.ticket.findUnique({
-        where: { id: ticketId },
-        include: {
-            user: true,
-            tripBoarding: true
+async function fetchPurchase(purchaseId) {
+  await prisma.purchase.findUnique({
+    where: { id: purchaseId },
+    include: {
+      item: true,
+      drug: true,
+      seller: true,
+    },
+  });
+}
+
+
+async function fetchAllPurchases() {
+  await prisma.purchase.findMany({
+    include: {
+      item: true,
+      drug: true,
+      seller: true,
+    },
+  });
+}
+
+
+async function createNewBatch(totaldrugs, totalItems, totalcost, userId){
+    await prisma.batch.create({
+        data: {
+            totalCost: totalcost,
+            totalDrugs: totaldrugs,
+            totalItems: totalItems,
+            registeredBy: { connect: { id: userId }}
         }
     })
 }
 
-async function fetchTicketByToken(token){
-    await prisma.ticket.findUnique({
-        where: { qrCode: token },
-        include: {
-            user: true,
-            tripBoarding: true
-        }
-    })
+async function fetchBatch(batchId) {
+  await prisma.batch.findUnique({
+    where: { id: batchId },
+    include: {
+      registeredBy: true
+    },
+  });
 }
 
-async function fetchAllTickets(){
-    await prisma.ticket.findMany()
-}
 
-async function markTicketAsUsed(ticketId){
-  await prisma.ticket.update({
-    where: { id: ticketId },
-    data: {
-      status: "USED",
+async function fetchAllBatches() {
+  await prisma.batch.findMany({   
+    include: {
+      registeredBy: true
     },
   });
 }
 
 
 
-
-async function getTripsLast7Days(){
+async function getPurchasesLast7Days(){
   const today = startOfDay(new Date());
   const sevenDaysAgo = subDays(today, 6); // includes today
 
   // Group trips per day for the last 7 days
-  const trips = await prisma.trip.findMany({
+  const purchases = await prisma.purchase.findMany({
     where: {
       created: {
         gte: sevenDaysAgo,
@@ -547,7 +438,7 @@ async function getTripsLast7Days(){
   const dailyCounts = Array.from({ length: 7 }, (_, i) => {
     const date = subDays(today, 6 - i);
     const dateStr = date.toISOString().slice(0, 10);
-    const count = trips.filter((t) => t.created.toISOString().slice(0, 10) === dateStr).length;
+    const count = purchases.filter((t) => t.created.toISOString().slice(0, 10) === dateStr).length;
     return { date: dateStr, count };
   });
 
@@ -555,120 +446,33 @@ async function getTripsLast7Days(){
 }
 
 
-/**
- * Get weekly stats for either TRIP or REV (revenue).
- * @param {"TRIP" | "REV"} type
- */
-async function getWeeklyStats(type) {
-  const grouped = {};
-
-  // -------------------
-  // TRIP MODE
-  // -------------------
-  if (type === "TRIP") {
-    const trips = await prisma.trip.findMany({
-      include: { boardings: true },
-      orderBy: { created: "asc" },
-    });
-
-    for (const trip of trips) {
-      const weekStart = startOfWeek(trip.created, { weekStartsOn: 1 });
-      const key = weekStart.toISOString();
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          start: weekStart,
-          end: endOfWeek(trip.created, { weekStartsOn: 1 }),
-          trips: 0,
-          passengers: 0,
-        };
-      }
-
-      grouped[key].trips += 1;
-      grouped[key].passengers += trip.boardings.length;
-    }
-  }
-
-  // -------------------
-  // REVENUE MODE
-  // -------------------
-  if (type === "REV") {
-    const tickets = await prisma.ticket.findMany({
-      orderBy: { created: "asc" },
-      select: {
-        price: true,
-        created: true,
-      },
-    });
-
-    for (const t of tickets) {
-      const weekStart = startOfWeek(t.created, { weekStartsOn: 1 });
-      const key = weekStart.toISOString();
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          start: weekStart,
-          end: endOfWeek(t.created, { weekStartsOn: 1 }),
-          totalRevenue: 0,
-          totalTickets: 0,
-        };
-      }
-
-      grouped[key].totalRevenue += t.price;
-      grouped[key].totalTickets += 1;
-    }
-  }
-
-  // -------------------
-  // Return formatted array
-  // -------------------
-  const results = Object.values(grouped)
-    .sort((a, b) => a.start - b.start)
-    .map((w, idx) => ({
-      num: idx + 1,
-      start: w.start,
-      end: w.end,
-      ...(type === "TRIP"
-        ? { trips: w.trips, passengers: w.passengers }
-        : { totalRevenue: w.totalRevenue, totalTickets: w.totalTickets }),
-    }));
-
-  return results;
-}
-
-
 
 module.exports = {
-    joinTrip,
-    fetchTrip,
-    fetchStaff,
-    fetchTicket,
+    fetchItem,
+    fetchDrug,
     clearUsers,
-    createNewBus,
-    fetchStudent,
-    createNewTrip,
-    fetchUserById,
-    fetchAllTrips,
-    fetchAllBuses,
-    fetchAllUsers,
+    deleteDrug,
+    deleteItem,
+    updateDrug,
+    fetchBatch,
+    updateItem,
     fetchOverview,
-    fetchAllStaff,
+    fetchUserById,
+    fetchOverview,
     createNewUser,
-    createNewRoute,
-    fetchAllRoutes,
-    markTripAsDone,
-    getWeeklyStats,
-    createNewTicket,
-    fetchAllTickets,
-    createNewWallet,
-    fetchActiveTrips,
-    markTicketAsUsed,
-    fetchAllStudents,
-    assignNewOperator,
-    fetchAllOperators,
-    fetchTicketByToken,
-    fetchTripsForToday,
-    getTripsLast7Days,
-    assignRoutesToBuses,
-    findUserStaffIdOrAddNum,
+    fetchAllDrugs,
+    fetchAllItems,
+    fetchAllStaff,
+    fetchPurchase,
+    fetchAllUsers,
+    createNewBatch,
+    assignNewStaff,
+    registerNewDrug,
+    fetchAllBatches,
+    registerNewItem,
+    fetchAllPurchases,
+    findUserByUsername,
+    registerNewPurchase,
+    fetchPurchasesForToday,
+    getPurchasesLast7Days,
 }

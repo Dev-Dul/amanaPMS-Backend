@@ -4,34 +4,36 @@ const bcrypt = require("bcryptjs");
 const db = require("../models/queries");
 
 
-// Local strategy: login only via admissionNo or staffId
 passport.use(
   new LocalStrategy(
-    {
-      usernameField: "username", // admissionNo or staffId
-      passwordField: "password",
-    },
     async (username, password, done) => {
       try {
-        // Find user by admissionNo or staffId
-        const user = await db.findUserStaffIdOrAddNum(username);
+        const user = await db.findUserByUsername(username);
 
-        if (!user) {
-          return done(null, false, { message: "User not found!" });
-        }
+        if(!user) return done(null, false, { message: "User not found!" });
 
         const match = await bcrypt.compare(password, user.password);
-        if (!match) {
-          return done(null, false, { message: "Password is incorrect!" });
-        }
+        if(!match) return done(null, false, { message: "Password is incorrect!" });
 
         return done(null, user);
-      } catch (err) {
+      }catch(err){
         return done(err);
       }
     }
   )
 );
+
+passport.use("telegram", new Strategy(async (req, done) => {
+  try{
+    const initData = req.body.initData || req.query.initData;
+
+    if(!initData) return done(null, false);
+
+    
+  }catch(error){
+    return done(error);
+  }
+}))
 
 // Serialize user by ID
 passport.serializeUser((user, done) => {
