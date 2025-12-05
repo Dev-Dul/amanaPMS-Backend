@@ -2,13 +2,14 @@ const { PrismaClient } = require("../generated/prisma/client");
 const prisma = new PrismaClient();
 const { startOfWeek, endOfWeek, startOfDay, subDays } = require("date-fns");
 
-async function createNewUser(fullname, email, password, telegramId){
+async function createNewUser(fullname, email, password, telegramId, username){
     const user = await prisma.user.create({
         data: {
             role: "ADMIN",
-            email: email,
             fullname: fullname,
-            password: password,
+            username: username,
+            email: email ?? undefined,
+            password: password ?? undefined,
             telegramId: telegramId ?? undefined,
         }
     });
@@ -22,7 +23,7 @@ async function findUserByUsername(username){
         drugs: true,
         items: true,
         batches: true,
-        purchase: {
+        purchases: {
           include: {
             item: true,
             drug: true
@@ -40,7 +41,7 @@ async function findUserByTGId(telegramId){
         drugs: true,
         items: true,
         batches: true,
-        purchase: {
+        purchases: {
           include: {
             item: true,
             drug: true
@@ -66,6 +67,59 @@ async function assignNewStaff(fullname, password, email, username){
 
 }
 
+async function suspendStaff(userId){
+   const user = await prisma.user.update({
+      where: { id: userId},
+      data: {
+        status: "INACTIVE"
+      },
+    });
+
+    return user;
+
+}
+
+
+async function deleteStaff(userId){
+   const user = await prisma.user.delete({
+      where: { id: userId},
+    });
+
+    return user;
+
+}
+
+async function updateStaff(fullname, password, email, username, userId){
+   const user = await prisma.user.update({
+     where: { id: userId },
+     data: {
+        email: email,
+        fullname: fullname,
+        username: username,
+        password: password,
+      },
+    });
+
+    return user;
+
+}
+
+
+async function updateProfile(fullname, password, email, username, userId){
+   const user = await prisma.user.update({
+     where: { id: userId },
+     data: {
+        email: email,
+        fullname: fullname,
+        username: username,
+        password: password,
+      },
+    });
+
+    return user;
+
+}
+
 
 
 async function fetchUserById(userId){
@@ -75,7 +129,7 @@ async function fetchUserById(userId){
         drugs: true,
         items: true,
         batches: true,
-        purchase: {
+        purchases: {
           include: {
             item: true,
             drug: true
@@ -138,8 +192,9 @@ async function fetchOverview() {
     availableDrugs,
     availableItems,
     totalPurchases,
-    totalRevenue,
-    revenueToday
+    purchasesToday,
+    drugsSoldToday,
+    itemsSoldToday,
   ] = await Promise.all([
     // All-time stats
     prisma.user.count(),
@@ -152,17 +207,66 @@ async function fetchOverview() {
     prisma.drug.count( { where: { isAvailable: true }} ),
     prisma.item.count( { where: { isAvailable: true }} ),
     prisma.purchase.count(),
-    prisma.purchase.aggregate({
-      _sum: { price: true }
-    }),
+    
 
     // Today's stats
-    prisma.purchase.aggregate({
-      _sum: { price: true },
+    prisma.purchase.count({
       where: { created: { gte: startOfDay, lte: endOfDay } }
     }),
 
+    prisma.purchase.count({
+      where: { created: { gte: startOfDay, lte: endOfDay }, type: "DRUG" }
+    }),
+
+    prisma.purchase.count({
+      where: { created: { gte: startOfDay, lte: endOfDay }, type: { not: "DRUG" } }
+    }),
+
   ]);
+
+  const purchases = await prisma.purchase.findMany({
+    include: {
+      drug: true,
+      item: true,
+    },
+  });
+
+  const tRevenue = 0;
+  const tProfit = 0;
+
+  for (const p of purchases) {
+    const price = p.drug?.price ?? p.item?.price ?? 0;
+    const cost = p.drug?.cost ?? p.item?.cost ?? 0;
+
+    const revenue = price * p.quantity;
+    const profit = (price - cost) * p.quantity;
+
+   tRevenue += revenue;
+   tProfit += profit;
+  }
+
+
+  const purchasesTd = await prisma.purchase.findMany({
+    where: { created: { gte: startOfDay, lte: endOfDay } },
+    include: {
+      drug: true,
+      item: true,
+    },
+  });
+
+  const tdRevenue = 0;
+  const tdProfit = 0;
+
+  for (const p of purchasesTd) {
+    const price = p.drug?.price ?? p.item?.price ?? 0;
+    const cost = p.drug?.cost ?? p.item?.cost ?? 0;
+
+    const revenue = price * p.quantity;
+    const profit = (price - cost) * p.quantity;
+
+    tdRevenue += revenue;
+    tdProfit += profit;
+  }
 
   return {
     // All-time stats
@@ -170,18 +274,21 @@ async function fetchOverview() {
     allDrugs: totalDrugs,
     items: totalItems,
     staff: totalStaff,
-    routes: totalRoutes,
     batches: totalBatches,
     finshedDrugs: finishedDrugs,
     finishedItems: finishedItems,
     availableDrugs: availableDrugs,
     availableItems: availableItems,
     totalPurchases: totalPurchases,
-    totalRevenue: totalRevenue._sum.price || 0,
+    totalRevenue: tRevenue || 0,
 
     // Today's stats
     today: {
-      revenue: revenueToday._sum.price || 0
+      revenue: tdRevenue || 0,
+      profit: tdProfit,
+      purchases: purchasesToday,
+      drugs: drugsSoldToday,
+      items: itemsSoldToday
     }
   };
 }
@@ -189,13 +296,11 @@ async function fetchOverview() {
 
 
 
-async function registerNewDrug(name, price, nafdac, quantity, manufacturer, type, userId){
+async function registerNewDrug(name, price, quantity, manufacturer, userId){
     await prisma.drug.create({
         data: {
             name: name,
-            type: type,
             price: price,
-            nafdacNum: nafdac,
             quantity: quantity,
             manufacturer: manufacturer,
             registeredBy: { connect: { id: userId }}
@@ -214,7 +319,18 @@ async function fetchDrug(drugId){
 }
 
 
-async function updateDrug(drugId, name, type, price, nafdac, manufacturer, cost, userId){
+async function updateDrug(drugId, name, type, quantity, price, manufacturer, cost){
+  let isUpdate = null;
+  const dg = await prisma.drug.findUnique({
+    where: { id: drugId }
+  })
+
+  if(dg.quantity <= 0 && quantity > 0){
+    isUpdate = true;
+  }else{
+    isUpdate = false;
+  }
+
     return await prisma.drug.update({
         where: { id: drugId },
         data: {
@@ -222,9 +338,9 @@ async function updateDrug(drugId, name, type, price, nafdac, manufacturer, cost,
           cost: cost,
           type: type,
           price: price,
-          nafdacNum: nafdac,
+          quantity: quantity,
+          isAvailable: isUpdate,
           manufacturer: manufacturer,
-          updatedBy: { connect: { id: userId }}
         }
     })
 }
@@ -240,7 +356,7 @@ async function deleteDrug(drugId){
 async function fetchAllDrugs(){
     return await prisma.drug.findMany({
         include: {
-            purchase: true,
+            purchases: true,
             registeredBy: true
         }
     })
@@ -267,9 +383,6 @@ async function fetchPurchasesForToday(){
 }
 
 
-async function fetchAllPurchases(){
-    return await prisma.purchase.findMany();
-}
 
 
 async function registerNewItem(name, type, quantity, manufacturer, price, cost, userId){
@@ -296,7 +409,20 @@ async function fetchItem(itemId){
     }
   });
 }
-async function updateItem(itemId, name, type, price, cost, manufacturer, updatedBy) {
+
+
+async function updateItem(itemId, name, quantity, type, price, cost, manufacturer) {
+  let isUpdate = null;
+  const it = await prisma.item.findUnique({
+    where: { id: itemId }
+  })
+
+  if(it.quantity <= 0 && quantity > 0){
+    isUpdate = true;
+  }else{
+    isUpdate = false;
+  }
+
   return await prisma.item.update({
     where: { id: itemId },
     data: {
@@ -304,8 +430,9 @@ async function updateItem(itemId, name, type, price, cost, manufacturer, updated
       cost: cost,
       type: type,
       price: price,
+      quantity: quantity,
+      isAvailable: isUpdate,
       manufacturer: manufacturer,
-      updatedBy: { connect: { id: updatedBy }}
     },
   });
 }
@@ -319,7 +446,7 @@ async function deleteItem(itemId){
 
 
 async function fetchAllItems(){
-  return await prisma.bus.findMany({
+  return await prisma.item.findMany({
     include: {
      purchases: true,
      registeredBy: true,
@@ -375,7 +502,7 @@ async function fetchPurchase(purchaseId) {
 
 
 async function fetchAllPurchases() {
-  await prisma.purchase.findMany({
+  return await prisma.purchase.findMany({
     include: {
       item: true,
       drug: true,
@@ -445,6 +572,60 @@ async function getPurchasesLast7Days(){
   return dailyCounts;
 }
 
+async function getWeeklyPurchaseStats() {
+  const purchases = await prisma.purchase.findMany({
+    orderBy: { created: "asc" },
+    include: {
+      drug: true,
+      item: true,
+    },
+  });
+
+  const grouped = {};
+
+  for (const p of purchases) {
+    const weekStart = startOfWeek(p.created, { weekStartsOn: 1 });
+    const key = weekStart.toISOString();
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        start: weekStart,
+        end: endOfWeek(p.created, { weekStartsOn: 1 }),
+        totalRevenue: 0,
+        totalProfit: 0,
+        totalPurchases: 0,
+      };
+    }
+
+    // -------------------------
+    // Determine item or drug
+    // -------------------------
+    const price = p.drug?.price ?? p.item?.price ?? 0;
+    const cost = p.drug?.cost ?? p.item?.cost ?? 0;
+
+    const revenue = price * p.quantity;
+    const profit = (price - cost) * p.quantity;
+
+    grouped[key].totalRevenue += revenue;
+    grouped[key].totalProfit += profit;
+    grouped[key].totalPurchases += 1;
+  }
+
+  // -------------------------
+  // Format output
+  // -------------------------
+  return Object.values(grouped)
+    .sort((a, b) => a.start - b.start)
+    .map((w, idx) => ({
+      num: idx + 1,
+      start: w.start,
+      end: w.end,
+      totalRevenue: w.totalRevenue,
+      totalProfit: w.totalProfit,
+      totalPurchases: w.totalPurchases,
+    }));
+}
+
 
 
 module.exports = {
@@ -456,15 +637,19 @@ module.exports = {
     updateDrug,
     fetchBatch,
     updateItem,
+    updateStaff,
+    deleteStaff,
+    suspendStaff,
     fetchOverview,
     fetchUserById,
-    fetchOverview,
     createNewUser,
     fetchAllDrugs,
     fetchAllItems,
     fetchAllStaff,
+    updateProfile,
     fetchPurchase,
     fetchAllUsers,
+    findUserByTGId,
     createNewBatch,
     assignNewStaff,
     registerNewDrug,
@@ -473,6 +658,7 @@ module.exports = {
     fetchAllPurchases,
     findUserByUsername,
     registerNewPurchase,
-    fetchPurchasesForToday,
     getPurchasesLast7Days,
+    fetchPurchasesForToday,
+    getWeeklyPurchaseStats,
 }

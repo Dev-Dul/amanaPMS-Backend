@@ -31,7 +31,7 @@ async function fetchPurchase(req, res){
 
   try{
     const purchase = await db.fetchPurchase(purchaseId);
-    res.status(200).json({ success: true, purchase });
+    res.status(200).json({ success: true, purchase: purchase });
   }catch(error){
     res.status(500).json({ message: error.message });
   }
@@ -43,7 +43,7 @@ async function fetchAllPurchases(req, res){
 
   try{
     const purchases = await db.fetchAllPurchases();
-    res.status(200).json({ success: true, purchases });
+    res.status(200).json({ success: true, purchases: purchases });
   }catch(error){
     res.status(500).json({ message: error.message });
   }
@@ -91,6 +91,18 @@ async function fetchAllBatches(req, res){
 }
 
 async function fetchPurchasesForToday(req, res){
+  if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthenticated!" });
+
+  try{
+    const purchases = await db.fetchPurchasesForToday();
+    res.status(200).json({ success: true, purchases });
+  }catch(error){
+    res.status(500).json({ message: error.message });
+  }
+}
+
+
+async function fetchUserSalesForToday(req, res){
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthenticated!" });
 
   try{

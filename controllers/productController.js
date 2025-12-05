@@ -7,15 +7,15 @@ const { checkSeatNumber, checkBalance } = require("../utils/checkEngine");
 // drug controllers begin
 
 async function registerNewDrug(req, res){
-  const { name, cost, price, nafdac, quantity, manufacturer, type, userId } = req.body;
+  const { name, cost, price, quantity, manufacturer, userId } = req.body;
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthenticated!" });
   if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
-  if(!name || !userId || !cost || !price || !nafdac || !quantity || !manufacturer || !type) return res.status(400).json({ message: "Incomplete Credentials!" });
+  if(!name || !userId || !cost || !price || !quantity || !manufacturer) return res.status(400).json({ message: "Incomplete Credentials!" });
 
 
   try{
-    await db.registerNewDrug(name, parseFloat(cost), parseFloat(price), nafdac, Number(quantity), manufacturer, type, Number(userId))    
-    res.status(200).json({ message: `Drug: ${name} registered successfully!`});
+    const drug = await db.registerNewDrug(name, parseFloat(cost), parseFloat(price), Number(quantity), manufacturer, Number(userId))    
+    res.status(200).json({ message: `Drug: ${name} registered successfully!`, drug: drug });
   }catch(error){
     res.status(500).json({ message: error.message });
   }
@@ -23,15 +23,15 @@ async function registerNewDrug(req, res){
 
 
 async function updateDrug(req, res){
-  const { name, drugId, cost, price, nafdac, manufacturer, type, userId } = req.body;
+  const { name, drugId, cost, quantity, price, manufacturer, type } = req.body;
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthenticated!" });
   if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
-  if(!userId || !name || !cost || !price || !nafdac || !quantity || !manufacturer || !type) return res.status(400).json({ message: "Incomplete Credentials!" });
+  if(!name || !cost || !price || !quantity || !manufacturer || !type) return res.status(400).json({ message: "Incomplete Credentials!" });
 
 
   try{
-    await db.updateDrug(drugId, name, type, parseFloat(price), nafdac, manufacturer, parseFloat(cost), Number(userId));
-    res.status(200).json({ message: `Drug: ${name} updated successfully!`});
+    const drug = await db.updateDrug(drugId, name, type, quantity, parseFloat(price), manufacturer, parseFloat(cost));
+    res.status(200).json({ message: `Drug: ${name} updated successfully!`, drug: drug });
   }catch(error){
     res.status(500).json({ message: error.message });
   }
@@ -72,7 +72,7 @@ async function deleteDrug(req, res){
 
   try {
     await db.deleteDrug(drugId);
-    res.status(200).json({ message: "Drug deleted successfully!" });
+    res.status(200).json({ message: "Drug deleted successfully!", drugId: drugId });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -89,8 +89,8 @@ async function registerNewItem(req, res){
 
 
   try{
-    await db.registerNewItem(name, type, Number(quantity), manufacturer, parseFloat(price), parseFloat(cost), Number(userId));
-    res.status(200).json({ message: `Product: ${name} registered successfully!`});
+    const item = await db.registerNewItem(name, type, Number(quantity), manufacturer, parseFloat(price), parseFloat(cost), Number(userId));
+    res.status(200).json({ message: `Product: ${name} registered successfully!`, item: item });
   }catch(error){
     res.status(500).json({ message: error.message });
   }
@@ -98,15 +98,15 @@ async function registerNewItem(req, res){
 
 
 async function updateItem(req, res){
-  const { name, itemId, cost, price, manufacturer, type, userId } = req.body;
+  const { name, itemId, cost, quantity, price, manufacturer, type } = req.body;
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthenticated!" });
   if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
-  if(!userId || !name || !cost || !price || !quantity || !manufacturer || !type) return res.status(400).json({ message: "Incomplete Credentials!" });
+  if(!name || !cost || !price || !quantity || !manufacturer || !type) return res.status(400).json({ message: "Incomplete Credentials!" });
 
 
   try{
-    await db.updateItem(itemId, name, type, parseFloat(price), parseFloat(cost), manufacturer, Number(userId));
-    res.status(200).json({ message: `Item: ${name} updated successfully!`});
+    const item = await db.updateItem(itemId, name, quantity, type, parseFloat(price), parseFloat(cost), manufacturer);
+    res.status(200).json({ message: `Item: ${name} updated successfully!`, item: item });
   }catch(error){
     res.status(500).json({ message: error.message });
   }
@@ -148,7 +148,7 @@ async function deleteItem(req, res){
 
   try {
     await db.deleteItem(itemId);
-    res.status(200).json({ message: "Item deleted successfully!" });
+    res.status(200).json({ message: "Item deleted successfully!", drugId: drugId });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -5,18 +5,17 @@ const adminController = require("../controllers/adminController");
 // get routes
 adminRouter.get("/overview", adminController.fetchOverview);
 adminRouter.get("/users/all", adminController.fetchAllUsers);
-adminRouter.get("/buses/all", adminController.fetchAllBuses);
-adminRouter.get("/routes/all", adminController.fetchAllRoutes);
-adminRouter.get("/data/recent", adminController.fetchRecentData);
-adminRouter.get("/data/weekly/:type", adminController.fetchWeeklyStats);
 adminRouter.get("/users/staff/all", adminController.fetchAllStaff);
-adminRouter.get("/users/students/all", adminController.fetchAllStudents);
-adminRouter.get("/users/operators/all", adminController.fetchAllOperators);
+adminRouter.get("/data/recent", adminController.fetch7daysPurchases);
+adminRouter.get("/users/:userId", adminController.fetchUser);
+adminRouter.get("/revenue/stats", adminController.fetchStats);
 
 // post routes
-adminRouter.post("/buses/new", adminController.addNewBus);
-adminRouter.post("/routes/new", adminController.createNewRoute);
-adminRouter.post("/operators/new", adminController.assignNewOperator);
+adminRouter.post("/staff/new", adminController.assignNewStaff);
+adminRouter.post("/profile/update", adminController.updateProfile);
+adminRouter.post("/staff/update/:userId", adminController.updateStaff);
+adminRouter.post("/staff/delete/:userId", adminController.deleteStaff);
+adminRouter.post("/staff/suspend/:userId", adminController.suspendStaff);
 
 
 module.exports = adminRouter;

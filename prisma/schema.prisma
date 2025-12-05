@@ -42,10 +42,10 @@ model User {
   fullname   String
   username   String     @unique
   email      String?    @unique
-  password   String
+  password   String?
   role       userRole   @default(STAFF)
   status     String     @default("ACTIVE")
-  telegramId String?     @unique
+  telegramId String?    @unique
   created    DateTime   @default(now())
   drugs      Drug[]
   items      Item[]
@@ -56,20 +56,16 @@ model User {
 model Drug {
   id           String     @id @default(cuid())
   name         String
-  type         String
   price        Float
   cost         Float
-  quantity     Int  
-  isAvailable  Boolean    @default(true)      
+  quantity     Int
+  isAvailable  Boolean    @default(true)
   updated      DateTime   @updatedAt
-  nafdacNum    String     @unique
   registered   DateTime   @default(now())
   registeredBy User       @relation(fields: [registererId], references: [id], onDelete: Cascade)
   registererId Int
-  updatedBy User       @relation(fields: [updatedById], references: [id], onDelete: Cascade)
-  updatedById Int
   manufacturer String
-  purchases     Purchase[]
+  purchases    Purchase[]
 }
 
 model Item {
@@ -79,14 +75,12 @@ model Item {
   manufacturer String
   price        Float
   cost         Float
-  quantity     Int    
-  isAvailable  Boolean    @default(true)    
+  quantity     Int
+  isAvailable  Boolean    @default(true)
   registered   DateTime   @default(now())
   updated      DateTime   @updatedAt
   registeredBy User       @relation(fields: [registererId], references: [id], onDelete: Cascade)
   registererId Int
-  updatedBy User       @relation(fields: [updatedById], references: [id], onDelete: Cascade)
-  updatedById Int
   purchases    Purchase[]
 }
 
@@ -95,7 +89,7 @@ model Purchase {
   type     purchaseType @default(DRUG)
   seller   User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellerId Int
-  quantity Int          
+  quantity Int
   item     Item?        @relation(fields: [itemId], references: [id], onDelete: Cascade)
   itemId   String?
   drug     Drug?        @relation(fields: [drugId], references: [id], onDelete: Cascade)

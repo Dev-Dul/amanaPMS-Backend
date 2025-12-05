@@ -6,9 +6,9 @@ const { PrismaClient } = require("./generated/prisma/client");
 const { PrismaSessionStore } = require("@quixo3/prisma-session-store");
 const { passport } = require("./auth/passport-config");
 const adminRouter = require("./routes/adminRouter");
-const ticketRouter = require("./routes/ticketRouter");
-const tripRouter = require("./routes/tripRouter");
 const gatesRouter = require("./routes/gatesRouter");
+const productRouter = require("./routes/productRouter");
+const purchaseRouter = require("./routes/purchaseRouter");
 const { setupSocket } = require("./socket/socket");
 const db = require("./models/queries");
 const bcrypt = require("bcryptjs");
@@ -51,67 +51,23 @@ setupSocket(server);
 
 app.use("/api/v1/", gatesRouter);
 app.use("/api/v1/admin/", adminRouter);
-app.use("/api/v1/tickets/", ticketRouter);
-app.use("/api/v1/trips/", tripRouter);
+app.use("/api/v1/products/", productRouter);
+app.use("/api/v1/purchases/", purchaseRouter);
 
-async function createNewUserWallet(){
+
+
+async function createNewUser(){
   try{
-    const user = await db.findUserStaffIdOrAddNum("2010203057");
-    await db.createNewWallet(user.id, 10000);
-    console.log("Succesfully created user wallet");
-  }catch(error){
-    console.error(`Wallet creation failed due to: ${error.message}`);
-  }
-}
-
-// createNewUserWallet();
-
-async function createNewTrip(){
-  try{
-    await db.createNewTrip("cmh0r00jr000kepygx5vwt0pc", "cmh0qzwe20000epyg3aofov8h", new Date());
-    console.log("Succesfully created new trip");
-  }catch(error){
-    console.error(`Trip creation failed due to: ${error.message}`);
-  }
-}
-
-createNewTrip();
-async function clearUsers(){
-  try{
-    await db.clearUsers();
-    console.log("Succesfully cleared all user accounts!");
-  }catch(error){
-    console.error(`Deleting accounts failed due to: ${error.message}`);
-  }
-}
-
-
-// clearUsers();
-
-async function assignRoutes(){
-  try{
-    await db.assignRoutesToBuses();
-    console.log("Succesfully assigned routes to buses!");
-  }catch(error){
-    console.error(`Assigning routes failed due to: ${error.message}`);
-  }
-}
-
-// assignRoutes();
-
-async function createAdminAccount(){
-  try{
-    const password = "admin1234";
+    const password = '12345678';
     const hashedPassword = await bcrypt.hash(password, 10);
-    await db.createNewUser("Dr. Abdullahi Mainasara", "admin.ksusta.edu.ng", hashedPassword, "ADMIN", null, "KSUSTA1234");
-    console.log("Succesfully created Admin Account");
-  }catch(error){
-    console.error(`Admin account creation failed due to: ${error.message}`);
+    await db.createNewUser("Abdulrahim Jamil", "abdul@gmail.com", hashedPassword, "123456", "DevAbdul");
+    console.log("User account created successfully!")
+  }catch(err){
+    console.log(err.message)
   }
 }
 
-
-// createAdminAccount();
+// createNewUser();
 
 
 app.use((err, req, res, next) => {
