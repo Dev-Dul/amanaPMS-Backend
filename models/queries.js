@@ -26,7 +26,8 @@ async function findUserByUsername(username){
         purchases: {
           include: {
             item: true,
-            drug: true
+            drug: true,
+            seller: true
           }
         }
        },
@@ -44,7 +45,26 @@ async function findUserByTGId(telegramId){
         purchases: {
           include: {
             item: true,
-            drug: true
+            drug: true,
+            seller: true,
+          }
+        }
+       },
+     });
+}
+
+async function findUserById(userId){
+     return await prisma.user.findUnique({
+      where: { id: userId },
+       include: {
+        drugs: true,
+        items: true,
+        batches: true,
+        purchases: {
+          include: {
+            item: true,
+            drug: true,
+            seller: true,
           }
         }
        },
@@ -61,23 +81,44 @@ async function assignNewStaff(fullname, password, email, username){
         username: username,
         password: password,
       },
+
+      include: {
+        purchase: true,
+      }
     });
 
     return user;
 
 }
 
-async function suspendStaff(userId){
-   const user = await prisma.user.update({
-      where: { id: userId},
-      data: {
-        status: "INACTIVE"
-      },
+async function manageStaff(userId){
+  let newUser = null;
+   const user = await prisma.user.findUnique({
+      where: { id: userId },
     });
 
-    return user;
+    if(user.status === "ACTIVE"){
+      newUser = await prisma.user.update({
+         where: { id: userId },
+         data: {
+           status: "INACTIVE"
+         },
+       });
+       
+      }else{
+        newUser = await prisma.user.update({
+          where: { id: userId },
+          data: {
+            status: "ACTIVE"
+          },
+        });
+    }
+
+
+    return newUser;
 
 }
+
 
 
 async function deleteStaff(userId){
@@ -168,6 +209,11 @@ async function fetchAllStaff(){
     return await prisma.user.findMany({
         where: {
             role: "STAFF"
+        },
+        include: {
+          drugs: true,
+          items: true,
+          purchases: true,
         }
     });
 }
@@ -231,8 +277,8 @@ async function fetchOverview() {
     },
   });
 
-  const tRevenue = 0;
-  const tProfit = 0;
+  let tRevenue = 0;
+  let tProfit = 0;
 
   for (const p of purchases) {
     const price = p.drug?.price ?? p.item?.price ?? 0;
@@ -254,8 +300,8 @@ async function fetchOverview() {
     },
   });
 
-  const tdRevenue = 0;
-  const tdProfit = 0;
+  let tdRevenue = 0;
+  let tdProfit = 0;
 
   for (const p of purchasesTd) {
     const price = p.drug?.price ?? p.item?.price ?? 0;
@@ -275,7 +321,7 @@ async function fetchOverview() {
     items: totalItems,
     staff: totalStaff,
     batches: totalBatches,
-    finshedDrugs: finishedDrugs,
+    finishedDrugs: finishedDrugs,
     finishedItems: finishedItems,
     availableDrugs: availableDrugs,
     availableItems: availableItems,
@@ -296,10 +342,11 @@ async function fetchOverview() {
 
 
 
-async function registerNewDrug(name, price, quantity, manufacturer, userId){
+async function registerNewDrug(name, cost, price, quantity, manufacturer, userId){
     await prisma.drug.create({
         data: {
             name: name,
+            cost: cost,
             price: price,
             quantity: quantity,
             manufacturer: manufacturer,
@@ -386,7 +433,7 @@ async function fetchPurchasesForToday(){
 
 
 async function registerNewItem(name, type, quantity, manufacturer, price, cost, userId){
-    await prisma.item.create({
+    return await prisma.item.create({
         data: {
             name: name,
             cost: cost,
@@ -455,39 +502,39 @@ async function fetchAllItems(){
 }
 
 async function registerNewPurchase(type, qtt, sellerId, drugId = null, itemId = null){
-  await prisma.$transaction(async (tx) => {
-    await prisma.tx.create({
-        data: {
-            type: type,
-            quantity: quantity,
-            seller: { connect: { id: sellerId }},
-            ...(drugId && { drug: { connect: { id: drugId }}}),
-            ...(itemId && { item: { connect: { id: itemId }}})
-        }
-    })
+  return await prisma.$transaction(async (tx) => {
 
-    if(drugId){
+    const purchase = await tx.purchase.create({
+      data: {
+        type,
+        quantity: qtt,
+        seller: { connect: { id: sellerId }},
+        ...(drugId && { drug: { connect: { id: drugId }}}),
+        ...(itemId && { item: { connect: { id: itemId }}})
+      },
+      include: {
+        item: true,
+        drug: true,
+        seller: true
+      }
+    });
+
+    if (drugId) {
       await tx.drug.update({
         where: { id: drugId },
-        data: {
-          quantity: {
-            decrement: qtt
-          }
-        }
-      })
-    }else{
+        data: { quantity: { decrement: qtt } }
+      });
+    } else {
       await tx.item.update({
         where: { id: itemId },
-        data: {
-          quantity: {
-            decrement: qtt,
-          },
-        },
+        data: { quantity: { decrement: qtt } }
       });
     }
 
-  })
+    return purchase;
+  });
 }
+
 
 async function fetchPurchase(purchaseId) {
   await prisma.purchase.findUnique({
@@ -639,7 +686,8 @@ module.exports = {
     updateItem,
     updateStaff,
     deleteStaff,
-    suspendStaff,
+    manageStaff,
+    findUserById,
     fetchOverview,
     fetchUserById,
     createNewUser,

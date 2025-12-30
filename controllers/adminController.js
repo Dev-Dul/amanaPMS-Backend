@@ -113,8 +113,8 @@ async function deleteStaff(req, res){
     if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
 
     try{
-        await db.deleteStaff(Number(userId));
-        res.status(200).json({ message: "Staff account deleted successfully!" });
+        const user = await db.deleteStaff(Number(userId));
+        res.status(200).json({ message: "Staff account deleted successfully!", user: user });
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
@@ -122,14 +122,17 @@ async function deleteStaff(req, res){
 }
 
 
-async function suspendStaff(req, res){
+async function manageStaff(req, res){
     const { userId } = req.params;
     if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
     if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
 
     try{
-        await db.suspendStaff(Number(userId));
-        res.status(200).json({ message: "Staff account suspended successfully!" });
+        const user = await db.findUserById(Number(userId));
+        const msg = user.role === "ACTIVE" ? "suspended" : "reactivated";
+        const newUser = await db.manageStaff(Number(userId));
+        const info = { user: newUser, newRole: newUser.status };
+        res.status(200).json({ message: `Staff account ${msg} successfully!`, info: info });
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
@@ -169,7 +172,7 @@ module.exports = {
     fetchStats,
     deleteStaff,
     updateStaff,
-    suspendStaff,
+    manageStaff,
     updateProfile,
     fetchOverview,
     fetchAllStaff,

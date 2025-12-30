@@ -12,7 +12,7 @@ productRouter.get("/items/:itemId", productController.fetchItem);
 productRouter.post("/drugs/update", productController.updateDrug);
 productRouter.post("/items/update", productController.updateItem);
 productRouter.post("/drugs/new", productController.registerNewDrug);
-productRouter.post("/item/new", productController.registerNewItem);
+productRouter.post("/items/new", productController.registerNewItem);
 productRouter.post("/drugs/delete/:drugId", productController.deleteDrug);
 productRouter.post("/items/delete/:itemId", productController.deleteItem);
 

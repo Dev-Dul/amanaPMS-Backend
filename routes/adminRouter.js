@@ -15,7 +15,7 @@ adminRouter.post("/staff/new", adminController.assignNewStaff);
 adminRouter.post("/profile/update", adminController.updateProfile);
 adminRouter.post("/staff/update/:userId", adminController.updateStaff);
 adminRouter.post("/staff/delete/:userId", adminController.deleteStaff);
-adminRouter.post("/staff/suspend/:userId", adminController.suspendStaff);
+adminRouter.post("/staff/manage/:userId", adminController.manageStaff);
 
 
 module.exports = adminRouter;

@@ -49,8 +49,8 @@ model User {
   created    DateTime   @default(now())
   drugs      Drug[]
   items      Item[]
-  purchases  Purchase[]
   batches    Batch[]
+  purchases  Purchase[]
 }
 
 model Drug {

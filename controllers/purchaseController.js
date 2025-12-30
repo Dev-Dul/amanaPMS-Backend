@@ -12,12 +12,13 @@ async function registerNewPurchase(req, res){
   if(type === "ITEM" && !itemId) return res.status(400).json({ message: "Incomplete Credentials!" });
 
   try{
+    let purchase = null;
     if(type === "DRUG"){
-      await db.registerNewPurchase(type, Number(quantity), Number(sellerId), drugId, null);
+      purchase = await db.registerNewPurchase(type, Number(quantity), Number(sellerId), drugId, null);
     }else{
-      await db.registerNewPurchase(type, Number(quantity), Number(sellerId), null, itemId);
+      purchase = await db.registerNewPurchase(type, Number(quantity), Number(sellerId), null, itemId);
     }
-    res.status(200).json({ message: "New purchase succesfully recorded!"});
+    res.status(200).json({ message: "New purchase succesfully recorded!", purchase: purchase });
   }catch(error){
     res.status(500).json({ message: error.message });
   }
