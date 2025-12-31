@@ -67,7 +67,7 @@ async function createNewUser(){
   }
 }
 
-createNewUser();
+// createNewUser();
 
 
 app.use((err, req, res, next) => {
