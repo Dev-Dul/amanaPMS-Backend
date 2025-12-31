@@ -60,14 +60,14 @@ async function createNewUser(){
   try{
     const password = '12345678';
     const hashedPassword = await bcrypt.hash(password, 10);
-    await db.createNewUser("Abdulrahim Jamil", "abdul@gmail.com", hashedPassword, "123456", "DevAbdul");
+    await db.createNewUser("Abdulrahim Jamil", "abdul@gmail.com", hashedPassword, "123456", "admin");
     console.log("User account created successfully!")
   }catch(err){
     console.log(err.message)
   }
 }
 
-// createNewUser();
+createNewUser();
 
 
 app.use((err, req, res, next) => {
