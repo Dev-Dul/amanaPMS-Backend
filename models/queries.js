@@ -448,7 +448,7 @@ async function registerNewItem(name, type, quantity, manufacturer, price, cost, 
 
 
 async function fetchItem(itemId){
-  return await prisma.bus.findUnique({
+  return await prisma.item .findUnique({
     where: { id: itemId },
     include: {
      purchases: true,

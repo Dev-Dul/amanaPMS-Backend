@@ -65,7 +65,7 @@ async function registerNewBatch(req, res){
 }
 
 async function fetchBatch(req, res){
-  const { batchId } = req.param;
+  const { batchId } = req.params;
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthenticated!" });
   if(!batchId ) return res.status(400).json({ message: "Incomplete Credentials!" });
 
