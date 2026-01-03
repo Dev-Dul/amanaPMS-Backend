@@ -50,6 +50,10 @@ async function hydrateUser(req, res){
 
 }
 
+async function healthCheck(req, res){
+    res.status(200).send("OK");
+}
+
 
 async function logOut(req, res, next){
     if(!req.isAuthenticated()) return res.status(401).json({ message: "No User Logged In!" });
@@ -63,6 +67,7 @@ async function logOut(req, res, next){
 
 module.exports = {
     logOut,
+    healthCheck,
     getUserById,
     hydrateUser,
     createNewUser,

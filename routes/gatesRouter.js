@@ -5,6 +5,7 @@ const { handleLogin, handleTGLogin } = require("../auth/passport-config");
 
 // get routes
 gatesRouter.get("/logout", gatesController.logOut);
+gatesRouter.get("/health", gatesController.healthCheck);
 gatesRouter.get("/:userId", gatesController.getUserById);
 gatesRouter.get("/auth/hydrate", gatesController.hydrateUser);
 
