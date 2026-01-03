@@ -343,7 +343,7 @@ async function fetchOverview() {
 
 
 async function registerNewDrug(name, cost, price, quantity, manufacturer, userId){
-    await prisma.drug.create({
+    return await prisma.drug.create({
         data: {
             name: name,
             cost: cost,
