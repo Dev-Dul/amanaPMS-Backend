@@ -10,6 +10,7 @@ const gatesRouter = require("./routes/gatesRouter");
 const productRouter = require("./routes/productRouter");
 const purchaseRouter = require("./routes/purchaseRouter");
 const { setupSocket } = require("./socket/socket");
+const igniteJobEngine = require("./utils/jobEngine");
 const db = require("./models/queries");
 const bcrypt = require("bcryptjs");
 const http = require('http');
@@ -68,6 +69,8 @@ async function createNewUser(){
 }
 
 // createNewUser();
+
+igniteJobEngine();
 
 
 app.use((err, req, res, next) => {

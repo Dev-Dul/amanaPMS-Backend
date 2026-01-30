@@ -365,6 +365,16 @@ async function fetchDrug(drugId){
     })
 }
 
+async function fetchLowDrugs(){
+  return await prisma.drug.findMany({
+    where: {
+      quantity: {
+        lte: 10,
+      }
+    }
+  })
+}
+
 
 async function updateDrug(drugId, name, type, quantity, price, manufacturer, cost){
   let isUpdate = null;
@@ -454,6 +464,16 @@ async function fetchItem(itemId){
      purchases: true,
      registeredBy: true,
     }
+  });
+}
+
+async function fetchLowItems() {
+  return await prisma.item.findMany({
+    where: {
+      quantity: {
+        lte: 10,
+      },
+    },
   });
 }
 
@@ -694,6 +714,8 @@ module.exports = {
     fetchAllDrugs,
     fetchAllItems,
     fetchAllStaff,
+    fetchLowDrugs,
+    fetchLowItems,
     updateProfile,
     fetchPurchase,
     fetchAllUsers,
