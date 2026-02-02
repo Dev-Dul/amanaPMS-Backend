@@ -369,7 +369,7 @@ async function fetchLowDrugs(){
   return await prisma.drug.findMany({
     where: {
       quantity: {
-        lte: 10,
+        lte: 20,
       }
     }
   })
