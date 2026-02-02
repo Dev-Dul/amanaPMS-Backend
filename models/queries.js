@@ -471,7 +471,7 @@ async function fetchLowItems() {
   return await prisma.item.findMany({
     where: {
       quantity: {
-        lte: 10,
+        lte: 20,
       },
     },
   });
