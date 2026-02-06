@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 
 async function fetchOverview(req, res){
   if(!req.isAuthenticated()) return res.status(403).json({ message: "Unauthorized!" });
-  if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!" });
+  if(req.user.role !== "ADMIN") return res.status(403).json({ message: "Unauthorized!, user is not admin." });
     
     try{
         const overview = await db.fetchOverview();
