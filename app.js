@@ -29,6 +29,7 @@ app.use(
   session({
     cookie: {
       httpOnly: true,
+      partitioned: true, 
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : undefined,
       maxAge: sevenDays,
